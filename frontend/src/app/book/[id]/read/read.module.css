@@ -1,0 +1,102 @@
+.reader {
+  flex: 1;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+/* Tema claro */
+.light {
+  background: #fff;
+  color: #333;
+}
+
+/* Tema oscuro (default) */
+.dark {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.themeToggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.8rem;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.light .themeToggle {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.light .themeToggle:hover {
+  background: #e0e0e0;
+}
+
+.dark .themeToggle {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.dark .themeToggle:hover {
+  background: #333;
+}
+
+/* Estilos específicos para el contenido en modo oscuro */
+.dark pre,
+.dark code {
+  background: #2a2a2a;
+  border-color: #333;
+}
+
+.dark blockquote {
+  border-left-color: #444;
+  background: #2a2a2a;
+}
+
+.dark a {
+  color: #ff8c00;
+}
+
+.dark a:hover {
+  color: #ffb74d;
+}
+
+/* Ajustes de legibilidad para modo oscuro */
+.dark {
+  line-height: 1.7;
+  font-size: 1.1rem;
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: #fff;
+}
+
+/* Estilos responsivos para celulares */
+@media (max-width: 768px) {
+  .reader {
+    padding: 1rem;
+  }
+
+  .themeToggle {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .dark {
+    font-size: 1rem;
+  }
+}

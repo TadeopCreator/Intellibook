@@ -1,0 +1,201 @@
+.container {
+  width: 100%;
+  min-height: 100vh;
+  padding: 2rem;
+  margin-left: 0;
+  background: #111;
+  box-sizing: border-box;
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid #333;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.searchButton {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.2rem;
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-width: fit-content;
+  margin-bottom: 0.5rem;
+  margin-right: auto; /* Cambiado para asegurar que el botón siempre sea visible */
+}
+
+.searchButton:hover {
+  background: #333;
+}
+
+.icon {
+  font-size: 1.2rem;
+}
+
+.bookGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, min(200px, 100%)));
+  gap: 1.5rem;
+  padding: 0 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 1200px;
+}
+
+/* Media queries para dispositivos móviles */
+@media (max-width: 1024px) {
+  .bookGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, min(180px, 100%)));
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .content {
+    padding: 0;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .bookGrid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, min(150px, 100%)));
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  .searchButton {
+    width: 100%;
+    justify-content: center;
+    padding: 0.8rem;
+    margin: 0; /* Cambiado para asegurar que el botón siempre sea visible */
+  }
+
+  .searchBar {
+    width: 100%;
+  }
+
+  .filters {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filterButton {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  .content {
+    padding: 0;
+  }
+
+  .header {
+    padding: 0.5rem;
+  }
+
+  .bookGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+    padding: 0.5rem;
+  }
+
+  .bookGrid > * {
+    min-width: 0;
+  }
+
+  .searchButton {
+    font-size: 0.9rem;
+    padding: 0.7rem 1rem;
+    margin: 0; /* Cambiado para asegurar que el botón siempre sea visible */
+  }
+}
+
+/* Dark mode ajustes */
+@media (prefers-color-scheme: dark) {
+  .container {
+    background: #111;
+  }
+
+  .content {
+    background: #111;
+  }
+
+  .header {
+    border-color: #333;
+  }
+
+  .header h1 {
+    color: #fff;
+  }
+
+  .searchButton {
+    background: #2a2a2a;
+    color: #fff;
+    border-color: #333;
+  }
+
+  .searchButton:hover {
+    background: #333;
+  }
+}
+
+/* Ajustar margen solo en pantallas grandes */
+@media (min-width: 1200px) {
+  .container {
+    margin-left: 250px;
+  }
+} 

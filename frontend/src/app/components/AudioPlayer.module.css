@@ -1,0 +1,326 @@
+.playerContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #282828;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.playerContent {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.bookInfo {
+  display: none;  /* Ocultar por defecto */
+}
+
+.coverImage {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.bookDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.bookTitle {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookAuthor {
+  color: #b3b3b3;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Contenedor principal de controles */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Botón de play siempre a la izquierda */
+.playButton {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;  /* Evitar que el botón se encoja */
+  min-width: 40px;  /* Ancho mínimo fijo */
+  min-height: 40px; /* Altura mínima fija */
+}
+
+.playButton:hover {
+  transform: scale(1.1);
+}
+
+/* Barra de progreso ocupa el espacio restante */
+.progressBar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;  /* Reducir el gap para dar más espacio */
+  min-width: 100px;  /* Ancho mínimo para la barra de progreso */
+}
+
+.time {
+  color: #b3b3b3;
+  font-size: 0.8rem;
+  min-width: 45px;  /* Aumentado para acomodar HH:MM:SS */
+  text-align: center;
+}
+
+.progress {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  background: #535353;
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Estilo para la parte reproducida */
+.progress::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.progress::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #ff8c00;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  margin-top: -4px;
+  position: relative;
+  z-index: 2;
+}
+
+.progress::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #ff8c00;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border: none;
+  position: relative;
+  z-index: 2;
+}
+
+.progress:hover::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+.progress:hover::-moz-range-thumb {
+  opacity: 1;
+}
+
+/* Eliminar el estilo por defecto */
+.progress::-ms-track {
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+.stopButton {
+  background: none;
+  border: 1px solid #ff8c00;
+  color: #ff8c00;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 1rem;
+}
+
+.stopButton:hover {
+  background: #fff3e0;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .stopButton {
+    border-color: #ff8c00;
+    color: #ff8c00;
+  }
+
+  .stopButton:hover {
+    background: #4a2f00;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.modalContent {
+  padding: 2rem;
+  text-align: left;  /* Alineación a la izquierda */
+}
+
+.modalContent p {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.modalButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;  /* Alinear botones a la derecha */
+  margin-top: 2rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 1rem 2rem;  /* Botones más grandes */
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 160px;  /* Ancho mínimo para los botones */
+}
+
+.primaryButton {
+  background: #ff8c00;
+  color: white;
+  border: none;
+}
+
+.primaryButton:hover {
+  background: #e67e00;
+  transform: translateY(-1px);
+}
+
+.secondaryButton {
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+}
+
+.secondaryButton:hover {
+  background: #e0e0e0;
+  transform: translateY(-1px);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .modalContent p {
+    color: #e0e0e0;
+  }
+
+  .secondaryButton {
+    background: #2a2a2a;
+    color: #fff;
+  }
+
+  .secondaryButton:hover {
+    background: #333;
+  }
+}
+
+/* Media queries para dispositivos móviles */
+@media (max-width: 768px) {
+  .playerContainer {
+    padding: 0.8rem;
+  }
+
+  .playerContent {
+    padding: 0 0.5rem;
+  }
+
+  .controls {
+    gap: 0.5rem;  /* Reducir el espacio entre elementos */
+  }
+
+  .playButton {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;  /* Mantener el ancho mínimo */
+    min-height: 36px;
+  }
+
+  .time {
+    font-size: 0.8rem;
+    min-width: 35px;  /* Reducir el ancho mínimo del tiempo */
+  }
+}
+
+@media (max-width: 480px) {
+  .playerContainer {
+    padding: 0.6rem;
+  }
+
+  .playerContent {
+    padding: 0 0.3rem;
+  }
+
+  .playButton {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;  /* Mantener el ancho mínimo */
+    min-height: 32px;
+  }
+
+  .time {
+    font-size: 0.75rem;
+    min-width: 30px;  /* Reducir aún más el ancho mínimo del tiempo */
+  }
+
+  .progressBar {
+    gap: 0.3rem;  /* Reducir aún más el gap */
+  }
+}
+
+/* Mostrar el player correctamente en pantallas grandes */
+@media (min-width: 1200px) {
+  .playerContainer {
+    left: 250px;
+  }
+} 

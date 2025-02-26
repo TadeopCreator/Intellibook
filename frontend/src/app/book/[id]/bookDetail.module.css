@@ -1,0 +1,461 @@
+.container {
+  width: calc(100% - 75px);
+  min-height: 100vh;
+  padding: 1rem;
+  margin-left: 75px;
+  background: #111;
+  box-sizing: border-box;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.2rem;
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 2rem;
+}
+
+.backButton:hover {
+  background: #eee;
+  color: #333;
+  border-color: #ddd;
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  gap: 3rem;
+  margin-bottom: 2rem;
+}
+
+.bookHeader {
+  display: flex;
+  gap: 1.8rem;
+  margin-bottom: 1.8rem;
+  flex-wrap: wrap;
+}
+
+.coverAndActions {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.coverContainer {
+  width: 250px;
+  height: 375px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s ease-out;
+  transform-style: preserve-3d;
+  will-change: transform;
+  position: relative;  /* Asegurarnos que el contenedor es relativo */
+}
+
+/* Efecto de brillo animado */
+.coverContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  animation: shine 3s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 200%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+/* Efecto de brillo al hover (el que ya teníamos) */
+.coverContainer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  pointer-events: none;
+  transition: opacity 0.3s;
+  opacity: 0;
+  z-index: 1;
+}
+
+.coverContainer:hover::after {
+  opacity: 1;
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translateZ(20px);  /* Da un poco de profundidad a la imagen */
+}
+
+.bookInfo {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.bookInfo h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.bookInfo h2 {
+  font-size: 1.5rem;
+  color: #666;
+  font-weight: 500;
+  margin: 0;
+}
+
+.status {
+  margin-top: auto;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.5rem;
+  border-radius: 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.porleer {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.leyendo {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.leído {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 250px;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.2rem;
+  background: #2a2a2a;
+  color: #999;
+  border: 1px solid #333;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-width: 140px;  /* Ancho mínimo para mantener consistencia */
+}
+
+.actionButton:hover {
+  background: #333;
+  color: #fff;
+  border-color: #444;
+}
+
+.actionButton svg {
+  font-size: 1.2rem;
+}
+
+.playButton {
+  background: #ff8c00;
+  color: white;
+  border: none;
+}
+
+.playButton:hover {
+  background: #e67e00;
+}
+
+/* Para los modales y otros botones de acción */
+.actionButton.primary {
+  background: #ff8c00;
+  color: white;
+  border: none;
+}
+
+.actionButton.primary:hover {
+  background: #e67e00;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.detailSection {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.detailSection h3 {
+  font-size: 1.4rem;
+  color: #333;
+  margin: 0 0 1.5rem 0;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detailItem span:first-child {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.detailItem span:last-child {
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dates p {
+  margin: 0;
+  color: #666;
+}
+
+.listening {
+  background: #fff3e0 !important;  /* Fondo naranja suave */
+  color: #ff8c00 !important;  /* Texto naranja */
+  border: 1px solid #ff8c00 !important;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .container {
+    background: #111;
+  }
+
+  .backButton {
+    background: #2a2a2a;
+    color: #999;
+    border-color: #333;
+  }
+
+  .backButton:hover {
+    background: #333;
+    color: #fff;
+    border-color: #444;
+  }
+
+  .bookInfo h1 {
+    color: #fff;
+  }
+
+  .bookInfo h2 {
+    color: #999;
+  }
+
+  .detailSection {
+    background: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .detailSection h3 {
+    color: #fff;
+  }
+
+  .detailItem span:first-child {
+    color: #999;
+  }
+
+  .detailItem span:last-child {
+    color: #fff;
+  }
+
+  .dates p {
+    color: #999;
+  }
+
+  .secondaryButton {
+    background: #2a2a2a;
+    color: #999;
+    border-color: #333;
+  }
+
+  .secondaryButton:hover {
+    background: #333;
+    color: #fff;
+    border-color: #444;
+  }
+
+  .coverContainer::before {
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%
+    );
+  }
+
+  .listening {
+    background: #4a2f00 !important;  /* Fondo naranja oscuro */
+    color: #ffb74d !important;  /* Texto naranja claro */
+    border: 1px solid #ff8c00 !important;
+  }
+}
+
+/* Media queries para dispositivos móviles */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.8rem;
+  }
+
+  .content {
+    padding: 0.8rem;
+  }
+
+  .bookHeader {
+    gap: 1.2rem;
+  }
+
+  .coverAndActions {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .coverContainer {
+    width: 200px;
+    height: 300px;
+  }
+
+  .bookInfo {
+    text-align: center;
+    min-width: 100%;
+  }
+
+  .bookInfo h1 {
+    font-size: 1.8rem;
+  }
+
+  .bookInfo h2 {
+    font-size: 1.2rem;
+  }
+
+  .actions {
+    max-width: 100%;
+  }
+
+  .actionButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .details {
+    padding: 0;
+  }
+
+  .detailSection {
+    padding: 1rem;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  .content {
+    padding: 0.5rem;
+  }
+
+  .coverContainer {
+    width: 180px;
+    height: 270px;
+  }
+
+  .bookInfo h1 {
+    font-size: 1.5rem;
+  }
+
+  .actionButton {
+    font-size: 0.9rem;
+    padding: 0.7rem 1rem;
+  }
+}
+
+/* Mostrar sidebar en pantallas grandes */
+@media (min-width: 1200px) {
+  .container {
+    width: calc(100% - 250px);
+    margin-left: 250px;
+  }
+}

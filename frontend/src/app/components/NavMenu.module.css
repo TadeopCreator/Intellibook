@@ -1,0 +1,194 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  background: white;
+  border-right: 1px solid #eee;
+  padding: 2rem;
+  transition: transform 0.3s ease;
+  z-index: 1000;
+  transform: translateX(-100%);  /* Oculto por defecto */
+}
+
+.logo {
+  padding: 0 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo span {
+  font-size: 2rem;
+}
+
+.logo h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  text-decoration: none;
+  color: #666;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.navLink:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.navLink.active {
+  background: #fff3e0;  /* Fondo naranja suave */
+  color: #ff8c00;  /* Texto naranja */
+  font-weight: 500;
+  border-right: 3px solid #ff8c00;  /* Borde naranja */
+}
+
+.activeLink {
+  background: #fff3e0;  /* Fondo naranja suave */
+  color: #ff8c00;  /* Texto naranja */
+}
+
+.activeLink:hover {
+  background: #ffe0b2;  /* Un tono más claro al hover */
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .sidebar {
+    background: #1a1a1a;
+    border-right-color: #333;
+  }
+
+  .logo h1 {
+    color: #fff;
+  }
+
+  .navLink {
+    color: #999;
+  }
+
+  .navLink:hover {
+    background: #2a2a2a;
+    color: #fff;
+  }
+
+  .navLink.active {
+    background: #4a2f00;
+    color: #ffb74d;
+    border-right-color: #ff8c00;
+  }
+
+  .activeLink {
+    background: #4a2f00;  /* Fondo naranja oscuro */
+    color: #ffb74d;  /* Texto naranja claro */
+  }
+
+  .activeLink:hover {
+    background: #613d00;  /* Un tono más oscuro al hover */
+  }
+}
+
+/* Botón de menú móvil */
+.menuButton {
+  display: block;  /* Visible por defecto */
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+  background: #2a2a2a;
+  color: #fff;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menuButton:hover {
+  background: #333;
+}
+
+/* Media queries para dispositivos móviles */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .menuButton {
+    display: block;
+  }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .overlay.visible {
+    display: block;
+  }
+}
+
+/* Mostrar sidebar y ocultar botón en pantallas grandes */
+@media (min-width: 1200px) {
+  .sidebar {
+    transform: translateX(0);  /* Visible */
+  }
+
+  .menuButton {
+    display: none;  /* Oculto */
+  }
+
+  .overlay {
+    display: none !important;  /* Siempre oculto */
+  }
+}
+
+/* Ajustes para cuando el menú está abierto en pantallas pequeñas */
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.overlay.visible {
+  display: block;
+} 

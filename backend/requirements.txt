@@ -1,0 +1,9 @@
+fastapi[standard]
+python-dotenv
+google-genai
+sqlmodel
+google-cloud-texttospeech
+PyPDF2>=3.0.0
+ebooklib>=0.18.0
+beautifulsoup4>=4.12.0
+python-docx>=0.8.11
