@@ -49,16 +49,28 @@ load_dotenv()
 
 app = FastAPI()
 
-# Configurar CORS
+# Configurar CORS para permitir acceso desde el frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "http://localhost:3000"],  # URL del frontend
+    allow_origins=["http://192.168.0.13:3000"],  # URL del frontend
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos HTTP
-    allow_headers=["*"],  # Permitir todas las cabeceras
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Montar los directorios de archivos como rutas estáticas
+# Definir las rutas de los directorios
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+EBOOKS_DIR = os.path.join(STATIC_DIR, "ebooks")
+AUDIOBOOKS_DIR = os.path.join(STATIC_DIR, "audiobooks")
+
+# Crear los directorios si no existen
+os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(EBOOKS_DIR, exist_ok=True)
+os.makedirs(AUDIOBOOKS_DIR, exist_ok=True)
+
+# Montar los directorios estáticos
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/static/ebooks", StaticFiles(directory=EBOOKS_DIR), name="ebooks")
 app.mount("/static/audiobooks", StaticFiles(directory=AUDIOBOOKS_DIR), name="audiobooks")
 
@@ -66,7 +78,7 @@ app.mount("/static/audiobooks", StaticFiles(directory=AUDIOBOOKS_DIR), name="aud
 client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
 
 # Database setup
-DATABASE_URL = "sqlite:///books.db"
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'books.db')}" 
 engine = create_engine(DATABASE_URL)
 
 # Create tables
@@ -480,13 +492,42 @@ def update_book(book_id: int, book_data: dict):
 @app.delete("/api/books/{book_id}")
 def delete_book(book_id: int):
     with Session(engine) as session:
-        book = session.get(Book, book_id)
-        if not book:
-            raise HTTPException(status_code=404, detail="Book not found")
-        
-        session.delete(book)
-        session.commit()
-        return {"message": "Book deleted"}
+        try:
+            # Primero eliminar los registros de progreso asociados
+            progress = session.exec(
+                select(ReadingProgress).where(ReadingProgress.book_id == book_id)
+            ).first()
+            
+            if progress:
+                session.delete(progress)
+                session.commit()
+
+            # Luego eliminar el libro
+            book = session.get(Book, book_id)
+            if not book:
+                raise HTTPException(status_code=404, detail="Book not found")
+
+            # Eliminar archivos asociados si existen
+            if book.ebook_path:
+                file_path = os.path.join(EBOOKS_DIR, os.path.basename(book.ebook_path))
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
+            if book.audiobook_path:
+                file_path = os.path.join(AUDIOBOOKS_DIR, os.path.basename(book.audiobook_path))
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
+            session.delete(book)
+            session.commit()
+            return {"message": "Book deleted successfully"}
+
+        except Exception as e:
+            session.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error deleting book: {str(e)}"
+            )
 
 # Get progress for a book
 @app.get("/api/books/{book_id}/progress", response_model=ReadingProgress)
@@ -675,3 +716,7 @@ async def get_book_content(book_id: int):
                 status_code=500, 
                 detail=f"Error extracting text: {str(e)}"
             ) 
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) 
