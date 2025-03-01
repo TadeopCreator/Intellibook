@@ -6,6 +6,7 @@ import ReadingProgressTracker from './ReadingProgress';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import { BiPlus } from 'react-icons/bi';
+import { API_URL } from '../config/api';
 
 export default function BookList() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -25,7 +26,7 @@ export default function BookList() {
 
   const fetchBooks = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/books/');
+      const response = await fetch(`${API_URL}/api/books/`);
       const data = await response.json();
       setBooks(data);
     } catch (error) {
@@ -36,7 +37,7 @@ export default function BookList() {
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:8000/api/books/', {
+      const response = await fetch(`${API_URL}/api/books/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +62,7 @@ export default function BookList() {
     try {
       const { id, created_at, ...bookData } = newBook;
       
-      const response = await fetch(`http://localhost:8000/api/books/${editingId}`, {
+      const response = await fetch(`${API_URL}/api/books/${editingId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ export default function BookList() {
 
   const handleDeleteBook = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/books/${id}`, {
+      const response = await fetch(`${API_URL}/api/books/${id}`, {
         method: 'DELETE',
       });
       
@@ -122,7 +123,7 @@ export default function BookList() {
       return;
     }
 
-    if (type === 'audiobook' && !['mp3', 'm4a', 'wav'].includes(format || '')) {
+    if (type === 'audiobook' && !['mp3', 'm4a', 'wav', 'm4b', 'aac', 'ogg'].includes(format || '')) {
       alert('Por favor selecciona un archivo de audio válido');
       return;
     }
@@ -155,7 +156,7 @@ export default function BookList() {
             console.log(key, value);
           }
 
-          const uploadResponse = await fetch(`http://localhost:8000/api/upload/${type}/${editingId}`, {
+          const uploadResponse = await fetch(`${API_URL}/api/upload/${type}/${editingId}`, {
             method: 'POST',
             body: formData,
           });
@@ -181,7 +182,7 @@ export default function BookList() {
           const { created_at, ...bookUpdateWithoutDate } = bookUpdate;
 
           // Actualizar el libro en la base de datos
-          const updateResponse = await fetch(`http://localhost:8000/api/books/${editingId}`, {
+          const updateResponse = await fetch(`${API_URL}/api/books/${editingId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -412,7 +413,7 @@ export default function BookList() {
               <input
                 ref={audiobookInputRef}
                 type="file"
-                accept=".mp3,.m4b,.aac,.ogg"
+                accept=".mp3,.m4b,.aac,.ogg,.m4a,.wav"
                 className={styles.hiddenInput}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -433,6 +434,8 @@ export default function BookList() {
               <option value="m4b">M4B</option>
               <option value="aac">AAC</option>
               <option value="ogg">OGG</option>
+              <option value="m4a">M4A</option>
+              <option value="wav">WAV</option>
             </select>
           </div>
 

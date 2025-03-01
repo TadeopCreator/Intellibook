@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { ReadingProgress } from '../types/ReadingProgress';
 import styles from './ReadingProgress.module.css';
+import { API_URL } from '../config/api';
 
 interface ReadingProgressTrackerProps {
   bookId: number;
@@ -25,10 +26,12 @@ export default function ReadingProgressTracker({
 
   const fetchProgress = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/books/${bookId}/progress`);
+      const response = await fetch(`${API_URL}/api/books/${bookId}/progress`);
       if (response.ok) {
         const data = await response.json();
         setProgress(data);
+      } else {
+        throw new Error('Error al obtener el progreso');
       }
     } catch (error) {
       console.error('Error fetching progress:', error);
@@ -37,7 +40,7 @@ export default function ReadingProgressTracker({
 
   const updateProgress = async (updatedData: Partial<ReadingProgress>) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/books/${bookId}/progress`, {
+      const response = await fetch(`${API_URL}/api/books/${bookId}/progress`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -49,6 +52,8 @@ export default function ReadingProgressTracker({
         const data = await response.json();
         setProgress(data);
         setIsEditing(false);
+      } else {
+        throw new Error('Error al actualizar el progreso');
       }
     } catch (error) {
       console.error('Error updating progress:', error);

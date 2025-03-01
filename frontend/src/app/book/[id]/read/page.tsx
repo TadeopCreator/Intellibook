@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { BiArrowBack, BiSun, BiMoon } from 'react-icons/bi';
 import { Book } from '../../../types/Book';
 import Modal from '../../../components/Modal';
+import { API_URL } from '../../../config/api';
 
 export default function ReadBook({ params }: { params: Promise<{ id: string }> }) {
   const [content, setContent] = useState<string>('');
@@ -24,9 +25,9 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
     const fetchBookAndContent = async () => {
       try {
         const [bookResponse, contentResponse, progressResponse] = await Promise.all([
-          fetch(`http://localhost:8000/api/books/${id}`),
-          fetch(`http://localhost:8000/api/books/${id}/content`),
-          fetch(`http://localhost:8000/api/books/${id}/progress`)
+          fetch(`${API_URL}/api/books/${id}`),
+          fetch(`${API_URL}/api/books/${id}/content`),
+          fetch(`${API_URL}/api/books/${id}/progress`)
         ]);
 
         if (!bookResponse.ok || !contentResponse.ok) {
@@ -52,6 +53,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
         }
       } catch (error) {
         console.error('Error:', error);
+        setError('Error al cargar el contenido del libro');
       } finally {
         setIsLoading(false);
       }
@@ -84,7 +86,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
   const saveProgress = async () => {
     if (contentRef.current) {
       try {
-        const response = await fetch(`http://localhost:8000/api/books/${id}/progress`, {
+        const response = await fetch(`${API_URL}/api/books/${id}/progress`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -97,9 +99,12 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
 
         if (response.ok) {
           router.back();
+        } else {
+          throw new Error('Error al guardar el progreso');
         }
       } catch (error) {
         console.error('Error saving progress:', error);
+        setError('Error al guardar el progreso');
       }
     }
   };
