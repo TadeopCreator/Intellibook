@@ -43,6 +43,7 @@
   font-weight: 600;
   color: #fff;
   margin: 0;
+  padding-left: 1rem;
 }
 
 .searchButton {
@@ -132,6 +133,10 @@
     font-size: 0.9rem;
     padding: 0.5rem 1rem;
   }
+
+  .header h1 {
+    padding-left: 0.5rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -161,6 +166,10 @@
     font-size: 0.9rem;
     padding: 0.7rem 1rem;
     margin: 0; /* Cambiado para asegurar que el botón siempre sea visible */
+  }
+
+  .header h1 {
+    padding-left: 0.25rem;
   }
 }
 
