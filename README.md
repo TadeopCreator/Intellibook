@@ -116,13 +116,13 @@ To access from mobile devices on the same network:
 
 intellibook/
 ├── backend/
-│ ├── main.py
-│ ├── models.py
-│ ├── schemas.py
-│ └── utils.py
+│   ├── main.py
+│   ├── models.py
+│   ├── schemas.py
+│   └── utils.py
 ├── frontend/
-│ ├── public/
-│ ├── src/
-│ ├── .env.local
-│ └── package.json
+│   ├── public/
+│   ├── src/
+│   ├── .env.local
+│   └── package.json
 └── README.md
