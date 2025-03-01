@@ -111,28 +111,3 @@ To access from mobile devices on the same network:
 2. Edit the `frontend/src/app/config/api.ts` file to use that IP
 3. Edit the `backend/main.py` file to allow connections from that IP
 4. Access from your mobile device using `http://YOUR-COMPUTER-IP:3000`
-
-## Project Structure
-
-intellibook/
-├── backend/
-
-│   ├── main.py
-
-│   ├── models.py
-
-│   ├── schemas.py
-
-│   └── utils.py
-
-├── frontend/
-
-│   ├── public/
-
-│   ├── src/
-
-│   ├── .env.local
-
-│   └── package.json
-
-└── README.md
