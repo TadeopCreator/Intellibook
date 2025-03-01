@@ -20,5 +20,5 @@ node_modules/
 .DS_Store
 
 # Backend static files
-backend/static/
-backend/books_storage/
+backend/books_storage/backend/books.db
+backend/static/*
