@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './NavMenu.module.css';
 import { BiHome, BiLibrary, BiChat, BiMenu, BiX } from 'react-icons/bi';
+import { API_URL } from '../config/api';
 
 export default function NavMenu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
