@@ -8,6 +8,7 @@ import { BiDownload, BiBook, BiArrowBack, BiPlay, BiBookOpen, BiHeadphone } from
 import NavMenu from '../../components/NavMenu';
 import Link from 'next/link';
 import { useAudio } from '../../context/AudioContext';
+import { API_URL } from '../../config/api';
 
 export default function BookDetail({ params }: { params: { id: string } }) {
   const [book, setBook] = useState<Book | null>(null);
@@ -21,14 +22,28 @@ export default function BookDetail({ params }: { params: { id: string } }) {
     return isPlayerVisible && currentAudio?.bookId === book?.id.toString();
   }, [isPlayerVisible, currentAudio?.bookId, book?.id]);
 
-  // Función para obtener el progreso actual
-  const fetchProgress = async () => {
+  // Modificar la función que obtiene el progreso para evitar la caché
+  const fetchBookProgress = async (bookId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/books/${id}/progress`);
-      const progressData = await response.json();
-      setAudioPosition(progressData.audiobook_position || 0);
+      // Añadir un parámetro de timestamp para evitar la caché
+      const timestamp = new Date().getTime();
+      const response = await fetch(`${API_URL}/api/books/${bookId}/progress?t=${timestamp}`, {
+        cache: 'no-store', // Indicar a Next.js que no almacene en caché esta solicitud
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener el progreso');
+      }
+      
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching progress:', error);
+      console.error('Error al obtener el progreso:', error);
+      return null;
     }
   };
 
@@ -37,15 +52,15 @@ export default function BookDetail({ params }: { params: { id: string } }) {
     const fetchBookAndProgress = async () => {
       try {
         const [bookResponse, progressResponse] = await Promise.all([
-          fetch(`http://localhost:8000/api/books/${id}`),
-          fetch(`http://localhost:8000/api/books/${id}/progress`)
+          fetch(`${API_URL}/api/books/${id}`),
+          fetchBookProgress(id)
         ]);
         
         const bookData = await bookResponse.json();
-        const progressData = await progressResponse.json();
+        const progressData = await progressResponse;
         
         setBook(bookData);
-        setAudioPosition(progressData.audiobook_position || 0);
+        setAudioPosition(progressData?.audiobook_position || 0);
       } catch (error) {
         console.error('Error fetching book data:', error);
       }
@@ -69,24 +84,59 @@ export default function BookDetail({ params }: { params: { id: string } }) {
 
   // Recargar el progreso cuando se muestra el reproductor
   const handleShowPlayer = async () => {
-    await fetchProgress();
+    await fetchBookProgress(id);
+    if (!book) return;
+    
     showPlayer({
-      url: book.audiobook_url || `http://localhost:8000/static/${book.audiobook_path}`,
-      bookTitle: book?.title || '',
-      author: book?.author || '',
-      coverUrl: book?.cover_url || '',
-      bookId: book?.id?.toString() || '',
+      url: book.audiobook_url || `${API_URL}/static/${book.audiobook_path}`,
+      bookTitle: book.title || '',
+      author: book.author || '',
+      coverUrl: book.cover_url || '',
+      bookId: book.id?.toString() || '',
       initialPosition: audioPosition
     });
   };
 
+  // En el componente BookPage o similar
+  useEffect(() => {
+    // Cargar el progreso del libro cuando se monta el componente o cambia el ID
+    const loadBookProgress = async () => {
+      if (book?.id) {
+        const progress = await fetchBookProgress(book.id.toString());
+        if (progress) {
+          setAudioPosition(progress.audiobook_position || 0);
+        }
+      }
+    };
+    
+    loadBookProgress();
+  }, [book?.id]); // Dependencia en el ID del libro
+
+  // Escuchar el evento de actualización de progreso
+  useEffect(() => {
+    const handleProgressUpdate = (event: any) => {
+      const { bookId, position } = event.detail;
+      if (bookId === id) {
+        setAudioPosition(position);
+      }
+    };
+    
+    window.addEventListener('audioProgressUpdated', handleProgressUpdate);
+    
+    return () => {
+      window.removeEventListener('audioProgressUpdated', handleProgressUpdate);
+    };
+  }, [id]);
+
   if (!book) return <div>Cargando...</div>;
 
   const handleDownload = () => {
+    if (!book) return;
+    
     if (book.ebook_url) {
       window.open(book.ebook_url, '_blank');
     } else if (book.ebook_path) {
-      const fileUrl = `http://localhost:8000/static/${book.ebook_path}`;
+      const fileUrl = `${API_URL}/static/${book.ebook_path}`;
       window.open(fileUrl, '_blank');
     }
   };
@@ -98,11 +148,12 @@ export default function BookDetail({ params }: { params: { id: string } }) {
   };
 
   const handleStartListening = () => {
+    if (!book) return;
+    
     if (book.audiobook_url) {
       window.open(book.audiobook_url, '_blank');
     } else if (book.audiobook_path) {
-      // La ruta ya es relativa (ej: "audiobooks/1.mp3")
-      const fileUrl = `http://localhost:8000/static/${book.audiobook_path}`;
+      const fileUrl = `${API_URL}/static/${book.audiobook_path}`;
       window.open(fileUrl, '_blank');
     }
   };
