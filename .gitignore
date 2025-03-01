@@ -24,3 +24,4 @@ backend/books_storage/backend/books.db
 backend/static/*
 backend/books_storage/ebooks/*
 backend/books_storage/audiobooks/*
+backend/static/audiobooks/*
