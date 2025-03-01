@@ -22,3 +22,5 @@ node_modules/
 # Backend static files
 backend/books_storage/backend/books.db
 backend/static/*
+backend/books_storage/ebooks/*
+backend/books_storage/audiobooks/*
