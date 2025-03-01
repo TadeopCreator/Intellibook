@@ -6,6 +6,9 @@
   background: #282828;
   padding: 1rem;
   z-index: 1000;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out, height 0.3s ease-in-out;
+  transform-origin: bottom center;
 }
 
 .playerContent {
@@ -17,8 +20,39 @@
   padding: 0 1rem;
 }
 
+/* Sección izquierda con botón de play e info del libro */
+.playerLeftSection {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0; /* Permitir que se encoja si es necesario */
+  flex-shrink: 1; /* Permitir que se encoja */
+}
+
+/* Botón de play siempre a la izquierda */
+.playButton {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* No permitir que se encoja */
+  min-width: 40px;
+  min-height: 40px;
+}
+
+/* Información del libro */
 .bookInfo {
-  display: none;  /* Ocultar por defecto */
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0; /* Permitir que se encoja */
+  flex-shrink: 1; /* Permitir que se encoja */
 }
 
 .coverImage {
@@ -52,43 +86,13 @@
   text-overflow: ellipsis;
 }
 
-/* Contenedor principal de controles */
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-  min-width: 0;
-}
-
-/* Botón de play siempre a la izquierda */
-.playButton {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  padding: 0.5rem;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;  /* Evitar que el botón se encoja */
-  min-width: 40px;  /* Ancho mínimo fijo */
-  min-height: 40px; /* Altura mínima fija */
-}
-
-.playButton:hover {
-  transform: scale(1.1);
-}
-
-/* Barra de progreso ocupa el espacio restante */
+/* Barra de progreso */
 .progressBar {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;  /* Reducir el gap para dar más espacio */
-  min-width: 100px;  /* Ancho mínimo para la barra de progreso */
+  gap: 0.5rem;
+  min-width: 100px;
 }
 
 .time {
@@ -102,7 +106,11 @@
   flex: 1;
   height: 4px;
   -webkit-appearance: none;
-  background: #535353;
+  background: linear-gradient(to right, 
+    #ff8c00 0%, 
+    #ff8c00 var(--progress-percent, 0%), 
+    #535353 var(--progress-percent, 0%)
+  );
   border-radius: 2px;
   cursor: pointer;
   position: relative;
@@ -162,6 +170,7 @@
   color: transparent;
 }
 
+/* Botón de stop */
 .stopButton {
   background: none;
   border: 1px solid #ff8c00;
@@ -171,10 +180,12 @@
   cursor: pointer;
   transition: all 0.2s;
   margin-left: 1rem;
+  flex-shrink: 0; /* No permitir que se encoja */
+  white-space: nowrap;
 }
 
 .stopButton:hover {
-  background: #fff3e0;
+  background: rgba(255, 140, 0, 0.1);
 }
 
 /* Dark mode */
@@ -198,9 +209,11 @@
   }
 }
 
+/* Estilos para el modal */
 .modalContent {
-  padding: 2rem;
-  text-align: left;  /* Alineación a la izquierda */
+  padding: 1.5rem;
+  text-align: center; /* Centrar el contenido en móviles */
+  max-width: 100%;
 }
 
 .modalContent p {
@@ -212,19 +225,22 @@
 .modalButtons {
   display: flex;
   gap: 1rem;
-  justify-content: flex-end;  /* Alinear botones a la derecha */
-  margin-top: 2rem;
+  justify-content: center; /* Centrar los botones */
+  margin-top: 1.5rem;
+  flex-wrap: wrap; /* Permitir que los botones se envuelvan en pantallas pequeñas */
 }
 
 .primaryButton,
 .secondaryButton {
-  padding: 1rem 2rem;  /* Botones más grandes */
+  padding: 0.8rem 1.5rem; /* Botones más compactos */
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 160px;  /* Ancho mínimo para los botones */
+  min-width: 140px; /* Ancho mínimo reducido */
+  flex: 1; /* Permitir que los botones crezcan */
+  max-width: 200px; /* Limitar el ancho máximo */
 }
 
 .primaryButton {
@@ -265,6 +281,269 @@
   }
 }
 
+/* Vista expandida a pantalla completa con animación */
+.expandedPlayer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #121212;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  z-index: 1200;
+  overflow-y: auto;
+  animation: expandAnimation 0.3s ease-in-out forwards;
+}
+
+/* Animación para expandir */
+@keyframes expandAnimation {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animación para minimizar (se aplicará al cerrar) */
+.minimizing {
+  animation: minimizeAnimation 0.3s ease-in-out forwards;
+}
+
+@keyframes minimizeAnimation {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+/* Animación para los elementos internos */
+.expandedCoverContainer, 
+.expandedDetails, 
+.expandedControls, 
+.expandedProgressBar, 
+.expandedStopButton {
+  animation: fadeIn 0.4s ease-in-out forwards;
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+
+.expandedDetails {
+  animation-delay: 0.2s;
+}
+
+.expandedControls {
+  animation-delay: 0.3s;
+}
+
+.expandedProgressBar {
+  animation-delay: 0.4s;
+}
+
+.expandedStopButton {
+  animation-delay: 0.5s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.expandedCoverContainer {
+  width: 250px;
+  height: 250px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.expandedCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.expandedDetails {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.expandedTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 0.5rem 0;
+}
+
+.expandedAuthor {
+  font-size: 1.1rem;
+  color: #b3b3b3;
+  margin: 0;
+}
+
+.expandedControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Botón de play expandido (solo icono blanco) */
+.expandedPlayButton {
+  background: none;
+  border: none;
+  color: #fff;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expandedPlayButton:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.skipButton {
+  margin-top: 15px;
+  background: none;
+  border: none;
+  color: #b3b3b3;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.skipButton:hover {
+  color: #fff;
+}
+
+.skipText {
+  font-size: 0.8rem;  
+}
+
+.expandedProgressBar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.expandedTime {
+  color: #b3b3b3;
+  font-size: 0.9rem;
+  min-width: 50px;
+}
+
+.expandedProgress {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  background: linear-gradient(to right, 
+    #ff8c00 0%, 
+    #ff8c00 var(--progress-percent, 0%), 
+    #535353 var(--progress-percent, 0%)
+  );
+  border-radius: 3px;
+  cursor: pointer;
+  margin: 0;
+  position: relative;
+}
+
+/* Quitar el pseudo-elemento que está causando problemas */
+.expandedProgress::before {
+  display: none;
+}
+
+/* Ajustar el thumb para webkit */
+.expandedProgress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #ff8c00;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -4px;
+  position: static;
+}
+
+/* Ajustar el thumb para Firefox */
+.expandedProgress::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #ff8c00;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  position: static;
+}
+
+/* Botón de stop expandido (naranja) */
+.expandedStopButton {
+  background: none;
+  border: 1px solid #ff8c00;
+  color: #ff8c00;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1rem;
+}
+
+.expandedStopButton:hover {
+  background: rgba(255, 140, 0, 0.1);
+}
+
+/* Botón de minimizar (flecha hacia abajo) - posición a la izquierda con z-index alto */
+.minimizeButton {
+  position: absolute;
+  top: 1rem;
+  left: 1rem; /* Volver a la izquierda */
+  background: rgba(0, 0, 0, 0.5); /* Fondo semitransparente para destacar */
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+  z-index: 1500; /* Z-index muy alto para estar por encima de todo */
+  border-radius: 50%; /* Forma circular */
+  width: 40px;
+  height: 40px;
+}
+
+.minimizeButton:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.7);
+}
+
 /* Media queries para dispositivos móviles */
 @media (max-width: 768px) {
   .playerContainer {
@@ -273,22 +552,64 @@
 
   .playerContent {
     padding: 0 0.5rem;
+    justify-content: space-between;
   }
 
-  .controls {
-    gap: 0.5rem;  /* Reducir el espacio entre elementos */
-  }
-
+  /* Mostrar el botón de play a la izquierda */
   .playButton {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;  /* Mantener el ancho mínimo */
-    min-height: 36px;
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+    color: #fff;
+  }
+  
+  /* Quitar el borde naranja */
+  .playButton {
+    border: none;
+    color: #fff;
+    box-shadow: none;
   }
 
-  .time {
+  /* Información del libro después del botón */
+  .bookInfo {
+    display: flex;
+  }
+  
+  /* Ocultar barra de progreso en móvil */
+  .progressBar {
+    display: none;
+  }
+  
+  /* Mostrar el botón de stop a la derecha en móvil */
+  .stopButton {
+    display: block;
+    margin-left: auto;
+    padding: 0.5rem 0.8rem;
     font-size: 0.8rem;
-    min-width: 35px;  /* Reducir el ancho mínimo del tiempo */
+    white-space: nowrap;
+  }
+
+  .modalContent {
+    padding: 1.2rem;
+  }
+  
+  .modalContent p {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .modalButtons {
+    flex-direction: column; /* Apilar botones verticalmente en móviles */
+    gap: 0.8rem;
+  }
+  
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+    max-width: none;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
   }
 }
 
@@ -300,21 +621,51 @@
   .playerContent {
     padding: 0 0.3rem;
   }
-
-  .playButton {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;  /* Mantener el ancho mínimo */
-    min-height: 32px;
+  
+  .bookDetails {
+    max-width: 150px;
+  }
+  
+  .expandedCoverContainer {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .expandedTitle {
+    font-size: 1.3rem;
+  }
+  
+  .expandedAuthor {
+    font-size: 1rem;
+  }
+  
+  .expandedPlayButton {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .expandedPlayButton svg {
+    width: 30px;
+    height: 30px;
   }
 
-  .time {
+  .modalContent {
+    padding: 1rem;
+  }
+  
+  .modalContent p {
+    font-size: 0.95rem;
+  }
+  
+  .primaryButton,
+  .secondaryButton {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .stopButton {
+    padding: 0.4rem 0.6rem;
     font-size: 0.75rem;
-    min-width: 30px;  /* Reducir aún más el ancho mínimo del tiempo */
-  }
-
-  .progressBar {
-    gap: 0.3rem;  /* Reducir aún más el gap */
   }
 }
 
