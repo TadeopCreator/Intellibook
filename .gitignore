@@ -20,9 +20,12 @@ node_modules/
 .DS_Store
 
 # Backend static files
-backend/books_storage/backend/books.db
-backend/static/*
-backend/books_storage/ebooks/*
-backend/books_storage/audiobooks/*
-backend/static/audiobooks/*
 backend/books.db
+backend/static/*
+backend/books_storage/**/*
+backend/static/audiobooks/*
+
+# Mantener las carpetas vacías con .gitkeep
+!backend/books_storage/ebooks/.gitkeep
+!backend/books_storage/audiobooks/.gitkeep
+!backend/static/.gitkeep
