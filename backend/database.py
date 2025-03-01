@@ -1,1 +1,0 @@
-DATABASE_URL = "sqlite:////Users/tadeodeluca/Documents/book-assistant/book-assistant/backend/books.db" 

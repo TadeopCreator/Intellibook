@@ -54,7 +54,10 @@ class Book(SQLModel, table=True):
     audiobook_format: Optional[str] = None  # mp3, m4b, etc.
     
     # Add relationship to ReadingProgress
-    reading_progress: Optional[ReadingProgress] = Relationship(back_populates="book")
+    reading_progress: Optional["ReadingProgress"] = Relationship(
+        back_populates="book",
+        sa_relationship_kwargs={"cascade": "all, delete"}
+    )
     
     # New fields for book content
     ebook_url: Optional[str] = None  # For online URLs
