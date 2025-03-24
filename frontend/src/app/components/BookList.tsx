@@ -19,6 +19,8 @@ export default function BookList() {
   const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<number | null>(null);
+  const [ebookFile, setEbookFile] = useState<File | null>(null);
+  const [audiobookFile, setAudiobookFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchBooks();
@@ -37,21 +39,61 @@ export default function BookList() {
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Create FormData to handle both text fields and files
+      const formData = new FormData();
+      
+      // Add all book data fields to FormData
+      for (const [key, value] of Object.entries(newBook)) {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      }
+      
+      // Add file fields if available
+      if (ebookFile) {
+        const validEbookFormat = ebookFile.name.split('.').pop()?.toLowerCase();
+        if (!['pdf', 'epub', 'mobi', 'txt'].includes(validEbookFormat || '')) {
+          alert('Por favor selecciona un archivo PDF, EPUB, MOBI o TXT');
+          return;
+        }
+        
+        formData.append('ebook_file', ebookFile);
+        formData.append('ebook_format', validEbookFormat as string);
+        formData.append('ebook_filename', ebookFile.name);
+      }
+      
+      if (audiobookFile) {
+        const validAudioFormat = audiobookFile.name.split('.').pop()?.toLowerCase();
+        if (!['mp3', 'm4a', 'wav', 'm4b', 'aac', 'ogg'].includes(validAudioFormat || '')) {
+          alert('Por favor selecciona un archivo de audio válido');
+          return;
+        }
+        
+        formData.append('audiobook_file', audiobookFile);
+        formData.append('audiobook_format', validAudioFormat as string);
+        formData.append('audiobook_filename', audiobookFile.name);
+      }
+
+      // Send request with FormData instead of JSON
       const response = await fetch(`${API_URL}/api/books/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newBook),
+        body: formData,
+        // Don't set Content-Type header - browser will set it with boundary for FormData
       });
       
       if (response.ok) {
         fetchBooks();
         setNewBook({});
         setIsAdding(false);
+        setEbookFile(null);
+        setAudiobookFile(null);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error al agregar el libro');
       }
     } catch (error) {
       console.error('Error adding book:', error);
+      alert('Error al agregar el libro: ' + error.message);
     }
   };
 
@@ -62,12 +104,45 @@ export default function BookList() {
     try {
       const { id, created_at, ...bookData } = newBook;
       
+      // Create FormData to handle both text fields and files
+      const formData = new FormData();
+      
+      // Add all book data fields to FormData
+      for (const [key, value] of Object.entries(bookData)) {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      }
+      
+      // Add file fields if available
+      if (ebookFile) {
+        const validEbookFormat = ebookFile.name.split('.').pop()?.toLowerCase();
+        if (!['pdf', 'epub', 'mobi', 'txt'].includes(validEbookFormat || '')) {
+          alert('Por favor selecciona un archivo PDF, EPUB, MOBI o TXT');
+          return;
+        }
+        
+        formData.append('ebook_file', ebookFile);
+        formData.append('ebook_format', validEbookFormat as string);
+        formData.append('ebook_filename', ebookFile.name);
+      }
+      
+      if (audiobookFile) {
+        const validAudioFormat = audiobookFile.name.split('.').pop()?.toLowerCase();
+        if (!['mp3', 'm4a', 'wav', 'm4b', 'aac', 'ogg'].includes(validAudioFormat || '')) {
+          alert('Por favor selecciona un archivo de audio válido');
+          return;
+        }
+        
+        formData.append('audiobook_file', audiobookFile);
+        formData.append('audiobook_format', validAudioFormat as string);
+        formData.append('audiobook_filename', audiobookFile.name);
+      }
+      
       const response = await fetch(`${API_URL}/api/books/${editingId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bookData),
+        body: formData,
+        // Don't set Content-Type header - browser will set it with boundary for FormData
       });
       
       if (response.ok) {
@@ -75,6 +150,8 @@ export default function BookList() {
         setNewBook({});
         setEditingId(null);
         setIsAdding(false);
+        setEbookFile(null);
+        setAudiobookFile(null);
       } else {
         const error = await response.json();
         console.error('Error updating book:', error);
@@ -112,104 +189,8 @@ export default function BookList() {
     setEditingId(null);
     setNewBook({});
     setIsAdding(false);
-  };
-
-  const handleFileSelect = async (type: 'ebook' | 'audiobook', file: File) => {
-    const format = file.name.split('.').pop()?.toLowerCase();
-
-    // Validar el formato según el tipo
-    if (type === 'ebook' && !['pdf', 'epub', 'mobi', 'txt'].includes(format || '')) {
-      alert('Por favor selecciona un archivo PDF, EPUB, MOBI o TXT');
-      return;
-    }
-
-    if (type === 'audiobook' && !['mp3', 'm4a', 'wav', 'm4b', 'aac', 'ogg'].includes(format || '')) {
-      alert('Por favor selecciona un archivo de audio válido');
-      return;
-    }
-
-    // Debug información del archivo
-    console.log('File metadata:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
-    });
-
-    // Verificar que podemos leer el contenido
-    try {
-      // Leer los primeros bytes del archivo para verificar que tenemos acceso
-      const slice = file.slice(0, 1000);
-      const reader = new FileReader();
-      
-      reader.onload = async () => {
-        console.log('Primeros bytes del archivo:', reader.result);
-        
-        // Proceder con la subida si podemos leer el archivo
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-          // Debug FormData
-          console.log('FormData entries:');
-          for (let [key, value] of formData.entries()) {
-            console.log(key, value);
-          }
-
-          const uploadResponse = await fetch(`${API_URL}/api/upload/${type}/${editingId}`, {
-            method: 'POST',
-            body: formData,
-          });
-
-          // Debug respuesta
-          console.log('Upload response status:', uploadResponse.status);
-          const responseText = await uploadResponse.text();
-          console.log('Upload response text:', responseText);
-
-          if (!uploadResponse.ok) {
-            throw new Error(`Error al subir el archivo: ${responseText}`);
-          }
-
-          const uploadData = JSON.parse(responseText);
-
-          // Actualizar el libro con la ruta del archivo
-          const bookUpdate = {
-            ...newBook,
-            [`${type}_path`]: uploadData.file_path
-          };
-
-          // Eliminar created_at antes de enviar la actualización
-          const { created_at, ...bookUpdateWithoutDate } = bookUpdate;
-
-          // Actualizar el libro en la base de datos
-          const updateResponse = await fetch(`${API_URL}/api/books/${editingId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(bookUpdateWithoutDate),
-          });
-
-          if (updateResponse.ok) {
-            setNewBook(bookUpdate);
-            fetchBooks();
-          }
-        } catch (error) {
-          console.error('Error completo:', error);
-          alert('Error al actualizar el libro: ' + error.message);
-        }
-      };
-
-      reader.onerror = () => {
-        console.error('Error al leer el archivo:', reader.error);
-        alert('Error al leer el archivo');
-      };
-
-      reader.readAsArrayBuffer(slice);
-    } catch (error) {
-      console.error('Error al acceder al archivo:', error);
-      alert('No se pudo acceder al contenido del archivo');
-    }
+    setEbookFile(null);
+    setAudiobookFile(null);
   };
 
   const toggleCardExpansion = (bookId: number) => {
@@ -368,9 +349,11 @@ export default function BookList() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    // @ts-ignore - webkitRelativePath is not in the types
-                    const fullPath = file.path || file.webkitRelativePath || file.name;
-                    handleFileSelect('ebook', Object.assign(file, { path: fullPath }));
+                    setEbookFile(file);
+                    setNewBook({
+                      ...newBook, 
+                      ebook_path: file.name
+                    });
                   }
                 }}
               />
@@ -418,9 +401,11 @@ export default function BookList() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    // @ts-ignore - webkitRelativePath is not in the types
-                    const fullPath = file.path || file.webkitRelativePath || file.name;
-                    handleFileSelect('audiobook', Object.assign(file, { path: fullPath }));
+                    setAudiobookFile(file);
+                    setNewBook({
+                      ...newBook, 
+                      audiobook_path: file.name
+                    });
                   }
                 }}
               />
