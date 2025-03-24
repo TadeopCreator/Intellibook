@@ -25,6 +25,17 @@ backend/static/*
 backend/books_storage/**/*
 backend/static/audiobooks/*
 
+# Database migration files
+migrate_db.py
+sqlite_books_backup.json
+sqlite_progress_backup.json
+
+# Temporary files
+temp_files/
+temp_files/*
+temp_audio/
+temp_downloads/
+
 # Mantener las carpetas vacías con .gitkeep
 !backend/books_storage/ebooks/.gitkeep
 !backend/books_storage/audiobooks/.gitkeep
