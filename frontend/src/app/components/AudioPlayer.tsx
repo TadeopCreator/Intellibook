@@ -239,7 +239,7 @@ export default function AudioPlayer({
     // Check if MediaSession API is supported
     if ('mediaSession' in navigator) {
       // Make sure we have a valid cover URL
-      const artworkUrl = coverUrl || 'https://via.placeholder.com/512'; // Fallback image
+      const artworkUrl = coverUrl || 'https://placehold.co/1080x1920'; // Fallback image
       
       // Create absolute URLs if the cover URL is relative
       const getAbsoluteUrl = (url: string) => {
