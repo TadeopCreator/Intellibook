@@ -42,16 +42,7 @@ class Book(SQLModel, table=True):
     start_date: Optional[date] = None
     finish_date: Optional[date] = None
     notes: Optional[str] = None
-    created_at: date = Field(default=date.today())
-    
-    # New fields for book content
-    ebook_url: Optional[str] = None  # For online URLs
-    ebook_path: Optional[str] = None  # For local files
-    ebook_format: Optional[str] = None  # pdf, epub, txt, etc.
-    
-    audiobook_url: Optional[str] = None  # For online URLs
-    audiobook_path: Optional[str] = None  # For local files
-    audiobook_format: Optional[str] = None  # mp3, m4b, etc.
+    created_at: date = Field(default=date.today())        
     
     # Add relationship to ReadingProgress
     reading_progress: Optional["ReadingProgress"] = Relationship(

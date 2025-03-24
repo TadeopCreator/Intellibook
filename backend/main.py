@@ -5,13 +5,16 @@ import logging
 import os
 import shutil
 import sys
-from datetime import datetime, date
+from google.cloud.sql.connector import Connector, IPTypes
+import pymysql
+import sqlalchemy
+from datetime import datetime
+import time
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from google.api_core import retry
 from google.cloud import texttospeech
 from google import genai
 from google.genai import types
@@ -24,10 +27,11 @@ from PyPDF2 import PdfReader
 import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
-import docx
 
-# Instantiates a client
-client_tts = texttospeech.TextToSpeechClient()
+from google.cloud import storage
+
+# Load environment variables first, before setting any variables that depend on them
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -40,19 +44,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Explicitly set logger level
 
+# Now set DEBUG_MODE after environment variables are loaded
+DEBUG_MODE = os.getenv('DEBUG_MODE', 'True').lower() == 'true'
+logger.info(f"Application running in {'DEBUG' if DEBUG_MODE else 'PRODUCTION'} mode")
+
 # To execute FastAPI API: fastapi dev main.py (dev)
 # To execute FastAPI API: fastapi run main.py (prod?)
 # Uvicorn will be running on http://127.0.0.1:8000
-
-# Cargar variables de entorno
-load_dotenv()
 
 app = FastAPI()
 
 # Configurar CORS para permitir acceso desde el frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://192.168.0.13:3000"],  # URL del frontend
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,15 +82,70 @@ app.mount("/static/audiobooks", StaticFiles(directory=AUDIOBOOKS_DIR), name="aud
 # Configurar Gemini
 client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
 
-# Database setup
-DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'books.db')}" 
-engine = create_engine(DATABASE_URL)
+# Database setup based on DEBUG_MODE
+def get_database_engine():
+    if DEBUG_MODE:
+        # Use SQLite for local development
+        DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'books.db')}"
+        logger.info(f"Using SQLite database at {DATABASE_URL}")
+        return create_engine(DATABASE_URL)
+    else:
+        # Use Cloud SQL (MySQL) for production
+        try:                        
+            # Get connection parameters from environment variables
+            instance_connection_name = os.environ.get("INSTANCE_CONNECTION_NAME")
+            db_user = os.environ.get("DB_USER")
+            db_pass = os.environ.get("DB_PASS")
+            db_name = os.environ.get("DB_NAME")
+            
+            if not all([instance_connection_name, db_user, db_pass, db_name]):
+                logger.error("Missing required environment variables for Cloud SQL connection")
+                raise ValueError("Missing required environment variables for Cloud SQL connection")
+            
+            ip_type = IPTypes.PRIVATE if os.environ.get("PRIVATE_IP") else IPTypes.PUBLIC
+            
+            # Initialize Cloud SQL Python Connector
+            connector = Connector(ip_type=ip_type, refresh_strategy="LAZY")
+            
+            def getconn() -> pymysql.connections.Connection:
+                conn: pymysql.connections.Connection = connector.connect(
+                    instance_connection_name,
+                    "pymysql",
+                    user=db_user,
+                    password=db_pass,
+                    db=db_name,
+                )
+                return conn
+            
+            # Create SQLAlchemy engine
+            engine = sqlalchemy.create_engine(
+                "mysql+pymysql://",
+                creator=getconn,
+                pool_size=5,
+                max_overflow=2,
+                pool_timeout=30,
+                pool_recycle=1800
+            )
+            
+            logger.info(f"Connected to Cloud SQL MySQL instance: {instance_connection_name}")
+            return engine
+            
+        except Exception as e:
+            logger.error(f"Error connecting to Cloud SQL: {str(e)}")
+            logger.error("Falling back to SQLite database")
+            
+            # Fallback to SQLite if Cloud SQL connection fails
+            DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'books.db')}"
+            return create_engine(DATABASE_URL)
+
+# Get the database engine
+engine = get_database_engine()
 
 # Create tables
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
-# Crear tablas al iniciar
+# Create tables on startup
 create_db_and_tables()
 
 # Define system instructions for different functions
@@ -379,64 +439,276 @@ async def transcribe_audio(audio: UploadFile = File(...)):
     except Exception as e:
         return {"error": str(e)}
 
+# Upload a book to Cloud Storage from local file path
+def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
+    """
+    Uploads a book file to Google Cloud Storage bucket.
+    
+    Args:
+        source_file_name: Local path to the file
+        book_type: Either 'ebook' or 'audiobook'
+        filename: Optional custom filename to use in the cloud
+    
+    Returns:
+        Public URL of the uploaded file
+    """
+    if filename is None:
+        filename = os.path.basename(source_file_name)
+    
+    bucket_name = "intellibook_static"
+    folder = "ebooks" if book_type == 'ebook' else "audiobooks"
+    destination_blob_name = f"{folder}/{filename}"
+    
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+        
+        # Set generation match precondition to avoid race conditions
+        # generation_match_precondition = 0
+        
+        blob.upload_from_filename(source_file_name)        
+        
+        logger.info(f"File {source_file_name} uploaded to gs://{bucket_name}/{destination_blob_name}")
+        
+        # Return the public URL
+        return f"https://storage.cloud.google.com/{bucket_name}/{destination_blob_name}"
+    
+    except Exception as e:
+        logger.error(f"Error uploading to cloud storage: {str(e)}")
+        raise e
+
 def copy_file_to_storage(source_path: str, book_type: str) -> str:
     """
-    Copy a file to the appropriate storage directory and return the new path
+    Copy a file to the appropriate storage location and return the new path.
+    In DEBUG_MODE, files are stored locally.
+    In production, files are uploaded to Google Cloud Storage.
     """
-    if book_type == 'ebook':
-        base_dir = EBOOKS_DIR
-    else:  # audiobook
-        base_dir = AUDIOBOOKS_DIR
+    if DEBUG_MODE:
+        if book_type == 'ebook':
+            relative_web_path = f"ebooks/{os.path.basename(source_path)}"
+            base_dir = EBOOKS_DIR            
+        else:  # audiobook
+            relative_web_path = f"audiobooks/{os.path.basename(source_path)}"
+            base_dir = AUDIOBOOKS_DIR            
 
-    # Get filename and create format-specific subdirectory
-    filename = os.path.basename(source_path)
-    file_format = filename.split('.')[-1].lower()
-    target_dir = os.path.join(base_dir, file_format)
-    os.makedirs(target_dir, exist_ok=True)
+        # Get filename
+        filename = os.path.basename(source_path)
 
-    # Create target path
-    target_path = os.path.join(target_dir, filename)
-    
-    # Copy file if it exists
-    if os.path.exists(source_path):
-        shutil.copy2(source_path, target_path)
-    
-    return target_path
+        # Create target path (absolute for file operations)
+        absolute_target_path = os.path.join(base_dir, filename)
+        
+        # Copy file if it exists
+        if os.path.exists(source_path):
+            shutil.copy2(source_path, absolute_target_path)
+        
+        logger.debug(f"DEBUG MODE: File copied locally to {absolute_target_path}")
+        logger.debug(f"Returning web-accessible relative path: {relative_web_path}")
+        
+        # Return the web-accessible relative path instead of the absolute path
+        return relative_web_path
+    else:
+        # Production mode - use Google Cloud Storage
+        try:
+            cloud_url = upload_book_to_cloud_storage(source_path, book_type)
+            logger.info(f"PRODUCTION MODE: File uploaded to cloud: {cloud_url}")
+            return cloud_url
+        except Exception as e:
+            logger.error(f"Failed to upload to cloud storage: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to upload file to cloud storage: {str(e)}"
+            )
 
 @app.post("/api/books/")
-def create_book(book: Book):
-    with Session(engine) as session:
-        # Convertir fechas de string a objetos date si es necesario
-        if isinstance(book.start_date, str):
-            try:
-                book.start_date = date.fromisoformat(book.start_date)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid start_date format")
+async def create_book(
+    request: Request,
+    ebook_file: UploadFile = File(None),
+    audiobook_file: UploadFile = File(None)
+):
+    try:
+        # Parse form data to get book info
+        form = await request.form()
         
-        if isinstance(book.finish_date, str):
-            try:
-                book.finish_date = date.fromisoformat(book.finish_date)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid finish_date format")
+        # Extract book data from form
+        book_data = {}
+        for key, value in form.items():
+            if key not in ['ebook_file', 'audiobook_file']:
+                book_data[key] = value
+        
+        # Create Book model
+        book = Book(**book_data)
+        
+        # Handle ebook file if provided
+        if ebook_file:
+            # Save to temporary location first
+            temp_dir = os.path.join(BASE_DIR, "temp_files")
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_path = os.path.join(temp_dir, ebook_file.filename)
+            
+            with open(temp_path, "wb") as buffer:
+                content = await ebook_file.read()
+                buffer.write(content)
+            
+            # Use copy_file_to_storage to save to appropriate location
+            result_path = copy_file_to_storage(temp_path, 'ebook')
+            
+            # Set appropriate fields based on DEBUG_MODE
+            if DEBUG_MODE:
+                book.ebook_path = result_path
+                book.ebook_url = None
+            else:
+                book.ebook_url = result_path
+                book.ebook_path = None
+            
+            # Set format
+            book.ebook_format = form.get('ebook_format')
+            
+            # Clean up temp file
+            os.remove(temp_path)
+        
+        # Handle audiobook file if provided
+        if audiobook_file:
+            # Save to temporary location first
+            temp_dir = os.path.join(BASE_DIR, "temp_files")
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_path = os.path.join(temp_dir, audiobook_file.filename)
+            
+            with open(temp_path, "wb") as buffer:
+                content = await audiobook_file.read()
+                buffer.write(content)
+            
+            # Use copy_file_to_storage to save to appropriate location
+            result_path = copy_file_to_storage(temp_path, 'audiobook')
+            
+            # Set appropriate fields based on DEBUG_MODE
+            if DEBUG_MODE:
+                book.audiobook_path = result_path
+                book.audiobook_url = None
+            else:
+                book.audiobook_url = result_path
+                book.audiobook_path = None
+            
+            # Set format
+            book.audiobook_format = form.get('audiobook_format')
+            
+            # Clean up temp file
+            os.remove(temp_path)
+        
+        # Save book to database
+        with Session(engine) as session:
+            session.add(book)
+            session.commit()
+            session.refresh(book)
+            
+            logger.debug(f"Book created: ID={book.id}, DEBUG={DEBUG_MODE}, " +
+                         f"ebook_path={book.ebook_path}, ebook_url={book.ebook_url}, " +
+                         f"audiobook_path={book.audiobook_path}, audiobook_url={book.audiobook_url}")
+            
+            return book
+            
+    except Exception as e:
+        logger.error(f"Error creating book: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
-        # Handle ebook file
-        if book.ebook_path:
-            try:
-                book.ebook_path = copy_file_to_storage(book.ebook_path, 'ebook')
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Error copying ebook: {str(e)}")
-
-        # Handle audiobook file
-        if book.audiobook_path:
-            try:
-                book.audiobook_path = copy_file_to_storage(book.audiobook_path, 'audiobook')
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Error copying audiobook: {str(e)}")
-
-        session.add(book)
-        session.commit()
-        session.refresh(book)
-        return book
+# Update an existing book
+@app.put("/api/books/{book_id}")
+async def update_book(
+    book_id: int,
+    request: Request,
+    ebook_file: UploadFile = File(None),
+    audiobook_file: UploadFile = File(None)
+):
+    try:
+        # Parse form data
+        form = await request.form()
+        
+        # Extract book data from form
+        book_data = {}
+        for key, value in form.items():
+            if key not in ['ebook_file', 'audiobook_file']:
+                book_data[key] = value
+        
+        # Get existing book
+        with Session(engine) as session:
+            book = session.get(Book, book_id)
+            if not book:
+                raise HTTPException(status_code=404, detail="Book not found")
+            
+            # Handle ebook file if provided
+            if ebook_file:
+                # Save to temporary location first
+                temp_dir = os.path.join(BASE_DIR, "temp_files")
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, ebook_file.filename)
+                
+                with open(temp_path, "wb") as buffer:
+                    content = await ebook_file.read()
+                    buffer.write(content)
+                
+                # Use copy_file_to_storage to save to appropriate location
+                result_path = copy_file_to_storage(temp_path, 'ebook')
+                
+                # Set appropriate fields based on DEBUG_MODE
+                if DEBUG_MODE:
+                    book_data['ebook_path'] = result_path
+                    book_data['ebook_url'] = None
+                else:
+                    book_data['ebook_url'] = result_path
+                    book_data['ebook_path'] = None
+                
+                # Clean up temp file
+                os.remove(temp_path)
+            
+            # Handle audiobook file if provided
+            if audiobook_file:
+                # Save to temporary location first
+                temp_dir = os.path.join(BASE_DIR, "temp_files")
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, audiobook_file.filename)
+                
+                with open(temp_path, "wb") as buffer:
+                    content = await audiobook_file.read()
+                    buffer.write(content)
+                
+                # Use copy_file_to_storage to save to appropriate location
+                result_path = copy_file_to_storage(temp_path, 'audiobook')
+                
+                # Set appropriate fields based on DEBUG_MODE
+                if DEBUG_MODE:
+                    book_data['audiobook_path'] = result_path
+                    book_data['audiobook_url'] = None
+                else:
+                    book_data['audiobook_url'] = result_path
+                    book_data['audiobook_path'] = None
+                
+                # Clean up temp file
+                os.remove(temp_path)
+            
+            # Update book attributes
+            for key, value in book_data.items():
+                if hasattr(book, key):
+                    setattr(book, key, value)
+            
+            # Save changes
+            session.add(book)
+            session.commit()
+            session.refresh(book)
+            
+            logger.debug(f"Book updated: ID={book.id}, DEBUG={DEBUG_MODE}, " +
+                         f"ebook_path={book.ebook_path}, ebook_url={book.ebook_url}, " +
+                         f"audiobook_path={book.audiobook_path}, audiobook_url={book.audiobook_url}")
+            
+            return book
+            
+    except Exception as e:
+        logger.error(f"Error updating book: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.get("/api/books/", response_model=List[Book])
 def get_books():
@@ -451,43 +723,6 @@ def get_book(book_id: int):
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
         return book
-
-@app.put("/api/books/{book_id}", response_model=Book)
-def update_book(book_id: int, book_data: dict):
-    with Session(engine) as session:
-        book = session.get(Book, book_id)
-        if not book:
-            raise HTTPException(status_code=404, detail="Book not found")
-        
-        # Convertir fechas de string a objetos date
-        date_fields = ['created_at', 'start_date', 'finish_date']
-        for field in date_fields:
-            if field in book_data and book_data[field]:
-                try:
-                    if isinstance(book_data[field], str):
-                        book_data[field] = date.fromisoformat(book_data[field])
-                except ValueError:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Invalid date format for {field}"
-                    )
-        
-        # Actualizamos solo los campos proporcionados
-        for key, value in book_data.items():
-            if hasattr(book, key):
-                setattr(book, key, value)
-        
-        try:
-            session.add(book)
-            session.commit()
-            session.refresh(book)
-            return book
-        except Exception as e:
-            session.rollback()
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error updating book: {str(e)}"
-            )
 
 @app.delete("/api/books/{book_id}")
 def delete_book(book_id: int):
@@ -603,48 +838,6 @@ async def update_book_progress(book_id: int, progress_data: dict):
         session.commit()
         return progress
 
-@app.post("/api/upload/{file_type}/{book_id}")
-async def upload_file(file_type: str, book_id: int, file: UploadFile = File(...)):
-    try:
-        print(f"Subiendo archivo para libro ID: {book_id}")
-        print(f"Tipo de archivo: {file_type}")
-        print(f"Nombre original del archivo: {file.filename}")
-        
-        # Determinar la carpeta según el tipo de archivo
-        folder = "ebooks" if file_type == "ebook" else "audiobooks"
-        
-        # Crear nombre de archivo único usando el book_id
-        file_extension = os.path.splitext(file.filename)[1]
-        new_filename = f"{book_id}{file_extension}"
-        
-        # Guardar el archivo en la carpeta correspondiente
-        file_path = os.path.join(folder, new_filename)
-        absolute_path = os.path.join(EBOOKS_DIR if file_type == "ebook" else AUDIOBOOKS_DIR, new_filename)
-        
-        print(f"Ruta relativa del archivo: {file_path}")
-        print(f"Ruta absoluta del archivo: {absolute_path}")
-        print(f"¿El directorio existe? {os.path.exists(os.path.dirname(absolute_path))}")
-        
-        # Guardar el archivo
-        try:
-            with open(absolute_path, "wb") as buffer:
-                content = await file.read()
-                buffer.write(content)
-                print(f"Archivo guardado exitosamente, tamaño: {len(content)} bytes")
-                print(f"¿El archivo existe después de guardar? {os.path.exists(absolute_path)}")
-        except Exception as e:
-            print(f"Error al guardar el archivo: {str(e)}")
-            raise
-            
-        # Devolver la ruta relativa del archivo
-        return {"file_path": file_path}
-        
-    except Exception as e:
-        print(f"Error en upload_file: {str(e)}")
-        import traceback
-        print(f"Traceback completo: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 def extract_text_from_epub(epub_path):
     book = epub.read_epub(epub_path)
     chapters = []
@@ -662,60 +855,103 @@ def extract_text_from_pdf(pdf_path):
 
 @app.get("/api/books/{book_id}/content")
 async def get_book_content(book_id: int):
-    print(f"Intentando obtener contenido para libro ID: {book_id}")
+    logger.debug(f"Attempting to get content for book ID: {book_id}")
     
     with Session(engine) as session:
         book = session.get(Book, book_id)
-        print(f"Libro encontrado: {book}")
+        logger.debug(f"Book found: {book}")
         
         if not book:
-            print("Libro no encontrado en la base de datos")
+            logger.warning("Book not found in database")
             raise HTTPException(status_code=404, detail="Book not found")
-            
-        if not book.ebook_path:
-            print("Libro no tiene ruta de archivo")
-            raise HTTPException(status_code=404, detail="Book has no associated file")
         
-        print(f"Ruta del ebook: {book.ebook_path}")
-        file_path = os.path.join(EBOOKS_DIR, os.path.basename(book.ebook_path))
-        print(f"Ruta completa del archivo: {file_path}")
-        print(f"¿El archivo existe? {os.path.exists(file_path)}")
-        print(f"Contenido del directorio EBOOKS_DIR: {os.listdir(EBOOKS_DIR)}")
-        
-        if not os.path.exists(file_path):
-            print(f"Archivo no encontrado en: {file_path}")
-            raise HTTPException(
-                status_code=404, 
-                detail=f"File not found at path: {file_path}"
-            )
-        
+        temp_file = None
         try:
-            extension = book.ebook_path.split('.')[-1].lower()
-            print(f"Extensión del archivo: {extension}")
+            if DEBUG_MODE:
+                # Local file mode - use ebook_path
+                if not book.ebook_path:
+                    logger.warning("Book has no associated file path")
+                    raise HTTPException(status_code=404, detail="Book has no associated file")
+                
+                # Use the path directly
+                file_path = os.path.join(EBOOKS_DIR, os.path.basename(book.ebook_path))
+                
+            else:
+                # Cloud storage mode - use ebook_url
+                if not book.ebook_url:
+                    logger.warning("Book has no associated URL")
+                    raise HTTPException(status_code=404, detail="Book has no associated URL")
+                
+                logger.debug(f"Ebook URL: {book.ebook_url}")
+                
+                # Create temp directory if it doesn't exist
+                temp_dir = os.path.join(BASE_DIR, "temp_files")
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                extension = book.ebook_format  # Remove the dot
+                # Set up the temp file path
+                temp_file = os.path.join(temp_dir, f"temp_{book_id}_{int(time.time())}.{extension}")
+                
+                logger.debug(f"Downloading from URL: {book.ebook_url}")
+                
+                # Try alternative method using GCS client if HTTP download fails
+                try:
+                    logger.debug("Attempting download with GCS client")
+                    from google.cloud import storage
+                    
+                    # Parse URL to get bucket and blob path
+                    parts = book.ebook_url.replace("https://storage.cloud.google.com/", "").split("/", 1)
+                    bucket_name = parts[0]
+                    blob_path = parts[1] if len(parts) > 1 else ""
+                    
+                    # Initialize the storage client
+                    storage_client = storage.Client()
+                    bucket = storage_client.bucket(bucket_name)
+                    blob = bucket.blob(blob_path)
+                    
+                    # Download the file
+                    blob.download_to_filename(temp_file)
+                    file_path = temp_file
+                    logger.debug(f"Successfully downloaded with GCS client")
+                    
+                except Exception as gcs_error:
+                    logger.error(f"GCS client download also failed: {str(gcs_error)}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to download file: {str(e)}"
+                    )
+            
+            # Process file based on extension
+            extension = os.path.splitext(file_path)[1].lower()[1:]  # Remove the dot
             
             if extension == 'pdf':
-                print("Intentando extraer texto de PDF")
+                logger.debug("Extracting text from PDF")
                 content = extract_text_from_pdf(file_path)
             elif extension == 'epub':
-                print("Intentando extraer texto de EPUB")
+                logger.debug("Extracting text from EPUB")
                 content = extract_text_from_epub(file_path)
             else:
-                print("Intentando leer archivo de texto plano")
-                with open(file_path, 'r', encoding='utf-8') as f:
+                logger.debug("Reading plain text file")
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
             
-            print(f"Contenido extraído exitosamente, longitud: {len(content)}")
+            logger.debug(f"Content extracted successfully, length: {len(content)}")
             return {"content": content}
             
         except Exception as e:
-            print(f"Error al extraer texto: {str(e)}")
-            print(f"Tipo de error: {type(e)}")
+            logger.error(f"Error extracting text: {str(e)}")
             import traceback
-            print(f"Traceback completo: {traceback.format_exc()}")
+            logger.error(traceback.format_exc())
+            
             raise HTTPException(
                 status_code=500, 
                 detail=f"Error extracting text: {str(e)}"
-            ) 
+            )
+        finally:
+            # Clean up temp file if it was created
+            if temp_file and os.path.exists(temp_file):
+                #os.remove(temp_file)
+                pass
 
 if __name__ == "__main__":
     import uvicorn
