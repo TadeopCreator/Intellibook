@@ -1,0 +1,15 @@
+# Directories to ignore
+books_storage/
+static/
+migration/
+__pycache__/
+venv/
+
+# Files to ignore
+.DS_Store
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env*
+*.db
