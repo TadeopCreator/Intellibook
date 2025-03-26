@@ -1,4 +1,4 @@
-export type BookStatus = 'Por leer' | 'Leyendo' | 'Leído';
+export type BookStatus = 'To read' | 'Reading' | 'Read';
 export type EbookFormat = 'pdf' | 'epub' | 'txt' | 'mobi';
 export type AudiobookFormat = 'mp3' | 'm4b' | 'aac' | 'ogg';
 
