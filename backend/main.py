@@ -8,7 +8,7 @@ import sys
 from google.cloud.sql.connector import Connector, IPTypes
 import pymysql
 import sqlalchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, Request
@@ -460,14 +460,33 @@ def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
     destination_blob_name = f"{folder}/{filename}"
     
     try:
+        from google.cloud.storage import retry
+        from google.api_core import retry as api_retry
+        
+        # Create storage client with custom retry configuration
         storage_client = storage.Client()
+        
+        # Get bucket
         bucket = storage_client.bucket(bucket_name)
+        
+        # Create blob with explicit retry settings
         blob = bucket.blob(destination_blob_name)
         
-        # Set generation match precondition to avoid race conditions
-        # generation_match_precondition = 0
+        # Configure retry with exponential backoff
+        retry_config = api_retry.Retry(
+            initial=1.0,  # Initial delay in seconds
+            maximum=60.0,  # Maximum delay in seconds
+            multiplier=2.0,  # Delay multiplier
+            deadline=300.0,  # Total deadline in seconds (5 minutes)
+            predicate=api_retry.if_transient_error
+        )
         
-        blob.upload_from_filename(source_file_name)        
+        # Upload with retry and longer timeout
+        blob.upload_from_filename(
+            source_file_name,
+            retry=retry_config,
+            timeout=300,
+        )
         
         logger.info(f"File {source_file_name} uploaded to gs://{bucket_name}/{destination_blob_name}")
         
@@ -476,6 +495,9 @@ def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
     
     except Exception as e:
         logger.error(f"Error uploading to cloud storage: {str(e)}")
+        logger.error(f"Error details: {type(e).__name__}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise e
 
 def copy_file_to_storage(source_path: str, book_type: str) -> str:
@@ -952,6 +974,37 @@ async def get_book_content(book_id: int):
             if temp_file and os.path.exists(temp_file):
                 #os.remove(temp_file)
                 pass
+
+@app.get("/api/signed-url/{book_id}")
+async def get_signed_url(book_id: int):
+    with Session(engine) as session:
+        book = session.get(Book, book_id)
+        if not book or not book.audiobook_url:
+            raise HTTPException(status_code=404, detail="Audiobook not found")
+        
+        try:
+            if "storage.cloud.google.com" in book.audiobook_url:
+                parts = book.audiobook_url.replace("https://storage.cloud.google.com/", "").split("/", 1)
+                bucket_name = parts[0]
+                blob_path = parts[1] if len(parts) > 1 else ""
+                
+                storage_client = storage.Client()
+                bucket = storage_client.bucket(bucket_name)
+                blob = bucket.blob(blob_path)
+                
+                # URL válida por 3 horas - usando timedelta correctamente
+                url = blob.generate_signed_url(
+                    version="v4",
+                    expiration=timedelta(hours=3),
+                    method="GET"
+                )
+                
+                return {"signed_url": url}
+            else:
+                return {"url": book.audiobook_url}
+        except Exception as e:
+            logger.error(f"Error generating signed URL: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
