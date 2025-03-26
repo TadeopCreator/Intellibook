@@ -1,0 +1,31 @@
+# docker compose -f docker-compose.dev.yml up [OPTIONAL=frontend/backend]
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env.development
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/intellibook-credentials.json
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - ./frontend/.env.local
+    environment:
+      - NEXT_WEBPACK_USEPOLLING=1
+      - WATCHPACK_POLLING=true 
