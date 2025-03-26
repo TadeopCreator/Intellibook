@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 venv/
 .env
+.env*
 
 # Node
 node_modules/
@@ -24,8 +25,10 @@ backend/books.db
 backend/static/*
 backend/books_storage/**/*
 backend/static/audiobooks/*
+intellibook-credentials.json
 
 # Database migration files
+migration/
 migrate_db.py
 sqlite_books_backup.json
 sqlite_progress_backup.json
@@ -40,3 +43,8 @@ temp_downloads/
 !backend/books_storage/ebooks/.gitkeep
 !backend/books_storage/audiobooks/.gitkeep
 !backend/static/.gitkeep
+
+# Docker
+.docker/
+Dockerfile
+docker-compose.override.yml
