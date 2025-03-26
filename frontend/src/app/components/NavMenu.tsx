@@ -36,7 +36,7 @@ export default function NavMenu() {
       <nav className={`${styles.sidebar} ${isMenuOpen ? styles.open : ''}`}>
         <div className={styles.logo}>
           <span>📚</span>
-          <h1>BookMate</h1>
+          <h1>Intellibook</h1>
         </div>
         
         <div className={styles.navLinks}>
@@ -45,7 +45,7 @@ export default function NavMenu() {
             className={`${styles.navLink} ${pathname === '/' ? styles.active : ''}`}
           >
             <BiHome size={24} />
-            <span>Inicio</span>
+            <span>Home</span>
           </Link>
           
           <Link 
@@ -53,7 +53,7 @@ export default function NavMenu() {
             className={`${styles.navLink} ${pathname === '/library' ? styles.active : ''}`}
           >
             <BiLibrary size={24} />
-            <span>Biblioteca</span>
+            <span>Library</span>
           </Link>
           
           <Link 
@@ -61,7 +61,7 @@ export default function NavMenu() {
             className={`${styles.navLink} ${pathname === '/chat' ? styles.active : ''}`}
           >
             <BiChat size={24} />
-            <span>Chat</span>
+            <span>Assistant</span>
           </Link>
         </div>
       </nav>

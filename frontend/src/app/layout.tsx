@@ -15,13 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Book Assistant - Tu asistente literario",
-  description: "Un asistente inteligente para recomendaciones de libros, información sobre autores y análisis literarios",
-  keywords: "libros, literatura, recomendaciones, autores, AI, asistente",
-  authors: [{ name: "Book Assistant Team" }],
+  title: "Intellibook - Your intelligent reading assistant",
+  description: "An intelligent assistant for book recommendations, author information, and literary analysis",
+  keywords: "books, literature, recommendations, authors, AI, assistant, audiobooks",
+  authors: [{ name: "Tadeo Deluca" }],
   openGraph: {
-    title: "Book Assistant",
-    description: "Tu asistente personal para literatura y recomendaciones de libros",
+    title: "Intellibook",
+    description: "Your intelligent assistant for reading and audiobooks",
     type: "website",
   },
 };
@@ -32,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="dark">
           <AudioProvider>

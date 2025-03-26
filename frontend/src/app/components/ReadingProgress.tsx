@@ -31,7 +31,7 @@ export default function ReadingProgressTracker({
         const data = await response.json();
         setProgress(data);
       } else {
-        throw new Error('Error al obtener el progreso');
+        throw new Error('Error retrieving progress');
       }
     } catch (error) {
       console.error('Error fetching progress:', error);
@@ -53,7 +53,7 @@ export default function ReadingProgressTracker({
         setProgress(data);
         setIsEditing(false);
       } else {
-        throw new Error('Error al actualizar el progreso');
+        throw new Error('Error updating progress');
       }
     } catch (error) {
       console.error('Error updating progress:', error);
@@ -73,7 +73,7 @@ export default function ReadingProgressTracker({
         onClick={() => setIsEditing(true)}
         className={styles.startButton}
       >
-        Iniciar seguimiento
+        Start Tracking
       </button>
     );
   }
@@ -90,7 +90,7 @@ export default function ReadingProgressTracker({
         >
           {totalPages && (
             <div className={styles.inputGroup}>
-              <label>Página actual:</label>
+              <label>Current page:</label>
               <input
                 type="number"
                 min="0"
@@ -101,12 +101,12 @@ export default function ReadingProgressTracker({
                   current_page: parseInt(e.target.value)
                 }))}
               />
-              <span>de {totalPages}</span>
+              <span>of {totalPages}</span>
             </div>
           )}
 
           <div className={styles.inputGroup}>
-            <label>Capítulo actual:</label>
+            <label>Current chapter:</label>
             <input
               type="text"
               value={progress?.current_chapter || ''}
@@ -119,7 +119,7 @@ export default function ReadingProgressTracker({
 
           {hasAudiobook && (
             <div className={styles.inputGroup}>
-              <label>Posición del audio (HH:MM:SS):</label>
+              <label>Audio position (HH:MM:SS):</label>
               <input
                 type="text"
                 pattern="[0-9]{1,2}:[0-9]{2}:[0-9]{2}"
@@ -138,7 +138,7 @@ export default function ReadingProgressTracker({
           )}
 
           <div className={styles.inputGroup}>
-            <label>Notas de progreso:</label>
+            <label>Progress notes:</label>
             <textarea
               value={progress?.notes || ''}
               onChange={(e) => setProgress(prev => ({
@@ -149,15 +149,15 @@ export default function ReadingProgressTracker({
           </div>
 
           <div className={styles.buttonGroup}>
-            <button type="submit">Guardar</button>
-            <button type="button" onClick={() => setIsEditing(false)}>Cancelar</button>
+            <button type="submit">Save</button>
+            <button type="button" onClick={() => setIsEditing(false)}>Cancel</button>
           </div>
         </form>
       ) : (
         <div className={styles.progressInfo}>
           {progress?.current_page && totalPages && (
             <div className={styles.progressItem}>
-              <span>📖 Página {progress.current_page} de {totalPages}</span>
+              <span>📖 Page {progress.current_page} of {totalPages}</span>
               <div className={styles.progressBar}>
                 <div 
                   className={styles.progressFill}
@@ -169,19 +169,19 @@ export default function ReadingProgressTracker({
 
           {progress?.current_chapter && (
             <div className={styles.progressItem}>
-              <span>📑 Capítulo: {progress.current_chapter}</span>
+              <span>📑 Chapter: {progress.current_chapter}</span>
             </div>
           )}
 
           {progress?.audiobook_position && (
             <div className={styles.progressItem}>
-              <span>🎧 Tiempo: {formatTime(progress.audiobook_position)}</span>
+              <span>🎧 Time: {formatTime(progress.audiobook_position)}</span>
             </div>
           )}
 
           {progress?.notes && (
             <div className={styles.progressNotes}>
-              <h4>Notas:</h4>
+              <h4>Notes:</h4>
               <p>{progress.notes}</p>
             </div>
           )}
@@ -190,7 +190,7 @@ export default function ReadingProgressTracker({
             onClick={() => setIsEditing(true)}
             className={styles.editButton}
           >
-            Actualizar progreso
+            Update Progress
           </button>
         </div>
       )}

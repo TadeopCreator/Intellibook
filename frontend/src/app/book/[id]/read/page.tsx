@@ -31,7 +31,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
         ]);
 
         if (!bookResponse.ok || !contentResponse.ok) {
-          throw new Error('Error al cargar el libro o su contenido');
+          throw new Error('Error loading the book or its content');
         }
 
         const [bookData, contentData, progressData] = await Promise.all([
@@ -53,7 +53,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
         }
       } catch (error) {
         console.error('Error:', error);
-        setError('Error al cargar el contenido del libro');
+        setError('Error loading book content');
       } finally {
         setIsLoading(false);
       }
@@ -118,7 +118,10 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loadingMessage}>Cargando contenido...</div>
+        <div className={styles.loadingContainer}>
+          <div className={styles.spinner}></div>
+          <p>Loading content...</p>
+        </div>
       </div>
     );
   }
@@ -129,7 +132,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
         <div className={styles.header}>
           <button onClick={() => router.back()} className={styles.backButton}>
             <BiArrowBack size={20} />
-            <span>Volver</span>
+            <span>Back</span>
           </button>
         </div>
         <div className={styles.errorMessage}>
@@ -148,7 +151,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
             className={styles.backButton}
           >
             <BiArrowBack size={20} />
-            <span>Volver</span>
+            <span>Back</span>
           </button>
 
           {book && (
@@ -162,7 +165,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
               )}
               <div className={styles.bookDetails}>
                 <span className={styles.bookTitle}>{book.title}</span>
-                <span className={styles.bookReader}>Lectura Interactiva</span>
+                <span className={styles.bookReader}>Interactive Reading</span>
               </div>
             </div>
           )}
@@ -171,7 +174,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
           <button
             onClick={toggleViewerTheme}
             className={styles.themeButton}
-            title={viewerTheme === 'light' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+            title={viewerTheme === 'light' ? 'Switch to light theme' : 'Switch to dark theme'}
           >
             {viewerTheme === 'light' ? <BiSun size={20} /> : <BiMoon size={20} />}
           </button>
@@ -200,22 +203,22 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
       <Modal
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
-        title="Guardar Progreso"
+        title="Save Progress"
       >
         <div className={styles.saveModal}>
-          <p>¿Deseas guardar tu progreso de lectura?</p>
+          <p>Do you want to save your reading progress?</p>
           <div className={styles.modalActions}>
             <button
               onClick={saveProgress}
               className={styles.primaryButton}
             >
-              Guardar Progreso
+              Save Progress
             </button>
             <button
               onClick={() => router.back()}
               className={styles.secondaryButton}
             >
-              No Guardar
+              Don't Save
             </button>
           </div>
         </div>

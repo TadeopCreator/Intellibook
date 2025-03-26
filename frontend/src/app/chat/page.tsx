@@ -19,14 +19,14 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `¡Hola! Soy Dorian 📚
+      content: `Hello! I'm Dorian 📚
 
-Puedo ayudarte con:
-• Ver tus libros ("¿Qué libros tengo?")
-• Seguir tu progreso ("¿Por qué capítulo voy?")
-• Hablar sobre literatura
+I can help you with:
+• View your books ("What books do I have?")
+• Track your progress ("What chapter am I on?")
+• Discuss literature
 
-¿Qué quieres saber?`
+What would you like to know?`
     }
   ]);
   const [input, setInput] = useState('');
@@ -76,7 +76,7 @@ Puedo ayudarte con:
     
     const userMessage: Message = { 
       role: 'user', 
-      content: '🎤 Mensaje de voz enviado',
+      content: '🎤 Voice message sent',
       isAudio: true 
     };
     setMessages(prev => [...prev, userMessage]);
@@ -109,7 +109,7 @@ Puedo ayudarte con:
         if (index === prev.length - 1) {
           return {
             role: 'assistant',
-            content: data.response || 'Error procesando el audio.',
+            content: data.response || 'Sorry, there was an error processing your question.',
             isStreaming: false,
             audioContent: data.audioContent
           };
@@ -122,7 +122,7 @@ Puedo ayudarte con:
         if (index === prev.length - 1) {
           return {
             role: 'assistant',
-            content: 'Error al procesar el mensaje de voz.',
+            content: 'Error processing the voice message.',
             isStreaming: false
           };
         }
@@ -164,7 +164,7 @@ Puedo ayudarte con:
         if (index === prev.length - 1) {
           return {
             role: 'assistant',
-            content: data.response || 'Lo siento, hubo un error al procesar tu pregunta.',
+            content: data.response || 'Sorry, there was an error processing your question.',
             isStreaming: false
           };
         }
@@ -177,7 +177,7 @@ Puedo ayudarte con:
         if (index === prev.length - 1) {
           return {
             role: 'assistant',
-            content: 'Error al conectar con el servidor.',
+            content: 'Error connecting to the server.',
             isStreaming: false
           };
         }
@@ -206,8 +206,8 @@ Puedo ayudarte con:
     <div className={styles.container}>
       <NavMenu />
       <main className={styles.main}>
-        <h1 className={styles.title}>Chat</h1>
-        <p className={styles.subtitle}>Tu asistente personal de lectura</p>
+        <h1 className={styles.title}>Assistant - Dorian</h1>
+        <p className={styles.subtitle}>Your personal reading assistant</p>
 
         <div className={styles.chatContainer} ref={chatContainerRef}>
           <div className={styles.messageList}>
@@ -227,7 +227,7 @@ Puedo ayudarte con:
                         className={styles.playAudioButton}
                       >
                         <BiPlayCircle size={20} />
-                        <span>Reproducir</span>
+                        <span>Play</span>
                       </button>
                     )}
                   </div>
@@ -238,7 +238,12 @@ Puedo ayudarte con:
                       remarkPlugins={[remarkGfm]}
                       components={{
                         p: ({node, ...props}) => <p className={styles.paragraph} {...props} />,
-                        code: ({node, inline, ...props}) => (
+                        code: ({node, inline, className, ...props}: {
+                          node?: any;
+                          inline?: boolean;
+                          className?: string;
+                          children?: React.ReactNode;
+                        }) => (
                           <code className={`${styles.code} ${inline ? styles.inlineCode : styles.codeBlock}`} {...props} />
                         ),
                         pre: ({node, ...props}) => <pre className={styles.pre} {...props} />,
@@ -265,7 +270,7 @@ Puedo ayudarte con:
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Pregúntale algo a Dorian..."
+              placeholder="Ask Dorian something..."
               className={styles.input}
             />
             <button type="submit" className={styles.sendButton}>
@@ -282,12 +287,12 @@ Puedo ayudarte con:
           {isRecording ? (
             <>
               <BiStop size={20} />
-              <span>Detener</span>
+              <span>Stop</span>
             </>
           ) : (
             <>
               <BiMicrophone size={20} />
-              <span>Grabar</span>
+              <span>Record</span>
             </>
           )}
         </button>

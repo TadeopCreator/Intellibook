@@ -1,34 +1,34 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { use } from 'react';
 import { Book } from '../../types/Book';
 import styles from './bookDetail.module.css';
 import { useRouter } from 'next/navigation';
-import { BiDownload, BiBook, BiArrowBack, BiPlay, BiBookOpen, BiHeadphone } from 'react-icons/bi';
+import { BiDownload, BiArrowBack, BiBookOpen, BiHeadphone } from 'react-icons/bi';
 import NavMenu from '../../components/NavMenu';
 import Link from 'next/link';
 import { useAudio } from '../../context/AudioContext';
 import { API_URL } from '../../config/api';
+import { use } from "react";
 
-export default function BookDetail({ params }: { params: { id: string } }) {
+export default function BookDetail({ params }: { params: Promise<{ id: string }>}) {
   const [book, setBook] = useState<Book | null>(null);
   const [audioPosition, setAudioPosition] = useState(0);
   const { showPlayer, isPlayerVisible, currentAudio } = useAudio();
   const router = useRouter();
   const { id } = use(params);
 
-  // Verificar si este libro es el que se está reproduciendo actualmente
+  // Verify if this book is currently playing
   const isCurrentlyPlaying = useMemo(() => {
-    return isPlayerVisible && currentAudio?.bookId === book?.id.toString();
+    return isPlayerVisible && currentAudio?.bookId === (book?.id?.toString() || null);
   }, [isPlayerVisible, currentAudio?.bookId, book?.id]);
 
-  // Modificar la función que obtiene el progreso para evitar la caché
+  // Modify the function that retrieves progress to avoid cache
   const fetchBookProgress = async (bookId: string) => {
     try {
-      // Añadir un parámetro de timestamp para evitar la caché
+      // Add a timestamp parameter to avoid cache
       const timestamp = new Date().getTime();
       const response = await fetch(`${API_URL}/api/books/${bookId}/progress?t=${timestamp}`, {
-        cache: 'no-store', // Indicar a Next.js que no almacene en caché esta solicitud
+        cache: 'no-store', // Tell Next.js not to cache this request
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -37,12 +37,12 @@ export default function BookDetail({ params }: { params: { id: string } }) {
       });
       
       if (!response.ok) {
-        throw new Error('Error al obtener el progreso');
+        throw new Error('Error retrieving progress');
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Error al obtener el progreso:', error);
+      console.error('Error retrieving progress:', error);
       return null;
     }
   };
@@ -69,26 +69,41 @@ export default function BookDetail({ params }: { params: { id: string } }) {
     fetchBookAndProgress();
   }, [id]);
 
-  // Manejar la navegación
+  // Handle navigation
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (showPlayer) {
+      if (isPlayerVisible) {
         e.preventDefault();
-        e.returnValue = '¿Quieres guardar tu progreso antes de salir?';
+        e.returnValue = 'Do you want to save your progress before leaving?';
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [showPlayer]);
+  }, [isPlayerVisible]);
 
   // Recargar el progreso cuando se muestra el reproductor
   const handleShowPlayer = async () => {
     await fetchBookProgress(id);
     if (!book) return;
     
+    let audioUrl = book.audiobook_url || `${API_URL}/static/${book.audiobook_path}`;
+    
+    // Si la URL es de Cloud Storage, obtener URL firmada
+    if (audioUrl.includes('storage.cloud.google.com')) {
+      try {
+        const response = await fetch(`${API_URL}/api/signed-url/${book.id}`);
+        const data = await response.json();
+        audioUrl = data.signed_url || data.url;
+      } catch (error) {
+        console.error("Error obteniendo URL firmada:", error);
+      }
+    }
+
+    console.log("Audio url: " + audioUrl);
+    
     showPlayer({
-      url: book.audiobook_url || `${API_URL}/static/${book.audiobook_path}`,
+      url: audioUrl,
       bookTitle: book.title || '',
       author: book.author || '',
       coverUrl: book.cover_url || '',
@@ -128,7 +143,12 @@ export default function BookDetail({ params }: { params: { id: string } }) {
     };
   }, [id]);
 
-  if (!book) return <div>Cargando...</div>;
+  if (!book) return (
+    <div className={styles.loadingContainer}>
+      <div className={styles.spinner}></div>
+      <p>Loading book details...</p>
+    </div>
+  );
 
   const handleDownload = () => {
     if (!book) return;
@@ -189,7 +209,7 @@ export default function BookDetail({ params }: { params: { id: string } }) {
         className={styles.backButton}
       >
         <BiArrowBack size={20} />
-        <span>Volver</span>
+        <span>Back</span>
       </button>
 
       <div className={styles.content}>
@@ -220,7 +240,7 @@ export default function BookDetail({ params }: { params: { id: string } }) {
               {(book.ebook_url || book.ebook_path) && (
                 <Link href={`/book/${book.id}/read`} className={`${styles.actionButton} ${styles.playButton}`}>
                   <BiBookOpen />
-                  <span>Leer</span>
+                  <span>Read</span>
                 </Link>
               )}
 
@@ -230,7 +250,7 @@ export default function BookDetail({ params }: { params: { id: string } }) {
                   className={`${styles.actionButton} ${styles.playButton} ${isCurrentlyPlaying ? styles.listening : ''}`}
                 >
                   <BiHeadphone />
-                  <span>{isCurrentlyPlaying ? 'Escuchando...' : 'Escuchar'}</span>
+                  <span>{isCurrentlyPlaying ? 'Listening...' : 'Listen'}</span>
                 </button>
               )}
 
@@ -240,7 +260,7 @@ export default function BookDetail({ params }: { params: { id: string } }) {
                   className={styles.actionButton}
                 >
                   <BiDownload />
-                  <span>Descargar</span>
+                  <span>Download</span>
                 </button>
               )}
             </div>
@@ -249,17 +269,17 @@ export default function BookDetail({ params }: { params: { id: string } }) {
 
         <div className={styles.details}>
           <div className={styles.detailSection}>
-            <h3>Detalles del Libro</h3>
+            <h3>Book Details</h3>
             <div className={styles.detailGrid}>
               {book.publisher && (
                 <div className={styles.detailItem}>
-                  <span>Editorial:</span>
+                  <span>Publisher:</span>
                   <span>{book.publisher}</span>
                 </div>
               )}
               {book.publish_year && (
                 <div className={styles.detailItem}>
-                  <span>Año:</span>
+                  <span>Year:</span>
                   <span>{book.publish_year}</span>
                 </div>
               )}
@@ -271,13 +291,13 @@ export default function BookDetail({ params }: { params: { id: string } }) {
               )}
               {book.language && (
                 <div className={styles.detailItem}>
-                  <span>Idioma:</span>
+                  <span>Language:</span>
                   <span>{book.language}</span>
                 </div>
               )}
               {book.pages && (
                 <div className={styles.detailItem}>
-                  <span>Páginas:</span>
+                  <span>Pages:</span>
                   <span>{book.pages}</span>
                 </div>
               )}
@@ -286,25 +306,25 @@ export default function BookDetail({ params }: { params: { id: string } }) {
 
           {book.description && (
             <div className={styles.detailSection}>
-              <h3>Descripción</h3>
+              <h3>Description</h3>
               <p>{book.description}</p>
             </div>
           )}
 
           {book.notes && (
             <div className={styles.detailSection}>
-              <h3>Notas</h3>
+              <h3>Notes</h3>
               <p>{book.notes}</p>
             </div>
           )}
 
           {book.start_date && (
             <div className={styles.detailSection}>
-              <h3>Fechas de Lectura</h3>
+              <h3>Reading Dates</h3>
               <div className={styles.dates}>
-                <p>Comenzado: {new Date(book.start_date).toLocaleDateString()}</p>
+                <p>Started: {new Date(book.start_date).toLocaleDateString()}</p>
                 {book.finish_date && (
-                  <p>Terminado: {new Date(book.finish_date).toLocaleDateString()}</p>
+                  <p>Finished: {new Date(book.finish_date).toLocaleDateString()}</p>
                 )}
               </div>
             </div>

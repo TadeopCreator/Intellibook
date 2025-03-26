@@ -53,7 +53,7 @@ export default function BookList() {
       if (ebookFile) {
         const validEbookFormat = ebookFile.name.split('.').pop()?.toLowerCase();
         if (!['pdf', 'epub', 'mobi', 'txt'].includes(validEbookFormat || '')) {
-          alert('Por favor selecciona un archivo PDF, EPUB, MOBI o TXT');
+          alert('Please select a PDF, EPUB, MOBI, or TXT file');
           return;
         }
         
@@ -65,7 +65,7 @@ export default function BookList() {
       if (audiobookFile) {
         const validAudioFormat = audiobookFile.name.split('.').pop()?.toLowerCase();
         if (!['mp3', 'm4a', 'wav', 'm4b', 'aac', 'ogg'].includes(validAudioFormat || '')) {
-          alert('Por favor selecciona un archivo de audio válido');
+          alert('Please select a valid audio file');
           return;
         }
         
@@ -89,11 +89,16 @@ export default function BookList() {
         setAudiobookFile(null);
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Error al agregar el libro');
+        throw new Error(errorData.detail || 'Error adding book');
       }
     } catch (error) {
       console.error('Error adding book:', error);
-      alert('Error al agregar el libro: ' + error.message);
+      
+      if (error instanceof Error) {
+        alert('Error adding book: ' + error.message);
+      } else {
+        alert('Error adding book: ' + String(error));
+      }
     }
   };
 
@@ -118,7 +123,7 @@ export default function BookList() {
       if (ebookFile) {
         const validEbookFormat = ebookFile.name.split('.').pop()?.toLowerCase();
         if (!['pdf', 'epub', 'mobi', 'txt'].includes(validEbookFormat || '')) {
-          alert('Por favor selecciona un archivo PDF, EPUB, MOBI o TXT');
+          alert('Please select a PDF, EPUB, MOBI, or TXT file');
           return;
         }
         
@@ -130,7 +135,7 @@ export default function BookList() {
       if (audiobookFile) {
         const validAudioFormat = audiobookFile.name.split('.').pop()?.toLowerCase();
         if (!['mp3', 'm4a', 'wav', 'm4b', 'aac', 'ogg'].includes(validAudioFormat || '')) {
-          alert('Por favor selecciona un archivo de audio válido');
+          alert('Please select a valid audio file');
           return;
         }
         
@@ -155,11 +160,11 @@ export default function BookList() {
       } else {
         const error = await response.json();
         console.error('Error updating book:', error);
-        alert('Error al actualizar el libro');
+        alert('Error updating book');
       }
     } catch (error) {
       console.error('Error updating book:', error);
-      alert('Error al conectar con el servidor');
+      alert('Error connecting to server');
     }
   };
 
@@ -217,39 +222,39 @@ export default function BookList() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>Mi Biblioteca</h2>
+        <h2>My Library</h2>
         <button 
           onClick={() => setIsAdding(true)}
           className={styles.addButton}
         >
           <BiPlus size={20} />
-          <span>Agregar Libro Manualmente</span>
+          <span>Add Book Manually</span>
         </button>
       </div>
 
       <Modal 
         isOpen={isAdding} 
         onClose={cancelEditing}
-        title={editingId ? "Editar Libro" : "Agregar Libro"}
+        title={editingId ? "Edit Book" : "Add Book"}
       >
         <form onSubmit={editingId ? handleEditBook : handleAddBook} className={styles.form}>
           <input
             type="text"
-            placeholder="Título"
+            placeholder="Title"
             value={newBook.title || ''}
             onChange={(e) => setNewBook({...newBook, title: e.target.value})}
             required
           />
           <input
             type="text"
-            placeholder="Autor"
+            placeholder="Author"
             value={newBook.author || ''}
             onChange={(e) => setNewBook({...newBook, author: e.target.value})}
             required
           />
           <input
             type="text"
-            placeholder="URL de la portada"
+            placeholder="Cover URL"
             value={newBook.cover_url || ''}
             onChange={(e) => setNewBook({...newBook, cover_url: e.target.value})}
           />
@@ -261,75 +266,78 @@ export default function BookList() {
           />
           <input
             type="text"
-            placeholder="Editorial"
+            placeholder="Publisher"
             value={newBook.publisher || ''}
             onChange={(e) => setNewBook({...newBook, publisher: e.target.value})}
           />
           <input
             type="number"
-            placeholder="Año de publicación"
+            placeholder="Publication year"
             value={newBook.publish_year || ''}
             onChange={(e) => setNewBook({...newBook, publish_year: parseInt(e.target.value)})}
           />
           <input
             type="number"
-            placeholder="Número de páginas"
+            placeholder="Number of pages"
             value={newBook.pages || ''}
             onChange={(e) => setNewBook({...newBook, pages: parseInt(e.target.value)})}
           />
           <input
             type="text"
-            placeholder="Idioma"
+            placeholder="Language"
             value={newBook.language || ''}
             onChange={(e) => setNewBook({...newBook, language: e.target.value})}
           />
           <select
-            value={newBook.status || 'Por leer'}
-            onChange={(e) => setNewBook({...newBook, status: e.target.value as BookStatus})}
+            value={newBook.status || 'To read'}
+            onChange={(e) => {
+              const status = e.target.value as BookStatus;
+              setNewBook({...newBook, status});
+            }}
           >
-            <option value="Por leer">Por leer</option>
-            <option value="Leyendo">Leyendo</option>
-            <option value="Leído">Leído</option>
+            <option value="To read">To read</option>
+            <option value="Reading">Reading</option>
+            <option value="Read">Read</option>
           </select>
-          {(newBook.status === 'Leyendo' || newBook.status === 'Leído') && (
+          {(newBook.status as string === 'Reading' || newBook.status as string === 'Read') && (
             <input
               type="date"
-              placeholder="Fecha de inicio"
+              placeholder="Start date"
               value={newBook.start_date || ''}
               onChange={(e) => setNewBook({...newBook, start_date: e.target.value})}
             />
           )}
-          {newBook.status === 'Leído' && (
+          {newBook.status as string === 'Read' && (
             <input
               type="date"
-              placeholder="Fecha de finalización"
+              placeholder="Finish date"
               value={newBook.finish_date || ''}
               onChange={(e) => setNewBook({...newBook, finish_date: e.target.value})}
             />
           )}
           <textarea
-            placeholder="Descripción"
+            placeholder="Description"
             value={newBook.description || ''}
             onChange={(e) => setNewBook({...newBook, description: e.target.value})}
           />
           <textarea
-            placeholder="Notas personales"
+            placeholder="Personal notes"
             value={newBook.notes || ''}
             onChange={(e) => setNewBook({...newBook, notes: e.target.value})}
           />
 
           <div className={styles.resourceSection}>
-            <h4>📚 Libro Digital</h4>
+            <h4>📚 Ebook</h4>
             <div className={styles.fileInputContainer}>
               <input
                 type="text"
-                placeholder="URL del libro digital"
+                placeholder="Ebook URL"
                 value={newBook.ebook_url || ''}
                 onChange={(e) => setNewBook({...newBook, ebook_url: e.target.value})}
               />
               <input
                 type="text"
-                placeholder="Ruta local del libro digital"
+                placeholder="Local ebook path"
                 value={newBook.ebook_path || ''}
                 onChange={(e) => setNewBook({...newBook, ebook_path: e.target.value})}
                 readOnly
@@ -339,7 +347,7 @@ export default function BookList() {
                 onClick={() => ebookInputRef.current?.click()}
                 className={styles.browseButton}
               >
-                Explorar
+                Browse
               </button>
               <input
                 ref={ebookInputRef}
@@ -362,7 +370,7 @@ export default function BookList() {
               value={newBook.ebook_format || ''}
               onChange={(e) => setNewBook({...newBook, ebook_format: e.target.value as EbookFormat})}
             >
-              <option value="">Seleccionar formato</option>
+              <option value="">Select format</option>
               <option value="pdf">PDF</option>
               <option value="epub">EPUB</option>
               <option value="txt">TXT</option>
@@ -371,17 +379,17 @@ export default function BookList() {
           </div>
 
           <div className={styles.resourceSection}>
-            <h4>🎧 Audiolibro</h4>
+            <h4>🎧 Audiobook</h4>
             <div className={styles.fileInputContainer}>
               <input
                 type="text"
-                placeholder="URL del audiolibro"
+                placeholder="Audiobook URL"
                 value={newBook.audiobook_url || ''}
                 onChange={(e) => setNewBook({...newBook, audiobook_url: e.target.value})}
               />
               <input
                 type="text"
-                placeholder="Ruta local del audiolibro"
+                placeholder="Local audiobook path"
                 value={newBook.audiobook_path || ''}
                 onChange={(e) => setNewBook({...newBook, audiobook_path: e.target.value})}
                 readOnly
@@ -391,7 +399,7 @@ export default function BookList() {
                 onClick={() => audiobookInputRef.current?.click()}
                 className={styles.browseButton}
               >
-                Explorar
+                Browse
               </button>
               <input
                 ref={audiobookInputRef}
@@ -414,7 +422,7 @@ export default function BookList() {
               value={newBook.audiobook_format || ''}
               onChange={(e) => setNewBook({...newBook, audiobook_format: e.target.value as AudiobookFormat})}
             >
-              <option value="">Seleccionar formato</option>
+              <option value="">Select format</option>
               <option value="mp3">MP3</option>
               <option value="m4b">M4B</option>
               <option value="aac">AAC</option>
@@ -430,13 +438,13 @@ export default function BookList() {
               onClick={cancelEditing}
               className={styles.cancelButton}
             >
-              Cancelar
+              Cancel
             </button>
             <button 
               type="submit"
               className={styles.submitButton}
             >
-              {editingId ? 'Actualizar' : 'Guardar'}
+              {editingId ? 'Update' : 'Save'}
             </button>
           </div>
         </form>
@@ -445,22 +453,22 @@ export default function BookList() {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Confirmar Eliminación"
+        title="Confirm Deletion"
       >
         <div className={styles.deleteModal}>
-          <p>¿Estás seguro de que quieres eliminar este libro?</p>
+          <p>Are you sure you want to delete this book?</p>
           <div className={styles.deleteModalActions}>
             <button
               onClick={() => bookToDelete && handleDeleteBook(bookToDelete)}
               className={styles.deleteButton}
             >
-              Eliminar
+              Delete
             </button>
             <button
               onClick={() => setIsDeleteModalOpen(false)}
               className={styles.cancelButton}
             >
-              Cancelar
+              Cancel
             </button>
           </div>
         </div>
@@ -487,7 +495,7 @@ export default function BookList() {
             <div className={styles.bookInfo}>
               <div className={styles.bookBasicInfo}>
                 <h3>{book.title}</h3>
-                <p className={styles.author}>Por {book.author}</p>
+                <p className={styles.author}>By {book.author}</p>
                 
                 <button 
                   onClick={(e) => {
@@ -496,7 +504,7 @@ export default function BookList() {
                   }}
                   className={styles.expandButton}
                 >
-                  {expandedCards.has(book.id!) ? 'Mostrar menos' : 'Mostrar más'}
+                  {expandedCards.has(book.id!) ? 'Show less' : 'Show more'}
                 </button>
               </div>
 
@@ -519,14 +527,14 @@ export default function BookList() {
 
                 {book.start_date && (
                   <p className={styles.dates}>
-                    Comenzado: {new Date(book.start_date).toLocaleDateString()}
-                    {book.finish_date && ` - Terminado: ${new Date(book.finish_date).toLocaleDateString()}`}
+                    Started: {new Date(book.start_date).toLocaleDateString()}
+                    {book.finish_date && ` - Finished: ${new Date(book.finish_date).toLocaleDateString()}`}
                   </p>
                 )}
 
                 {book.notes && (
                   <div className={styles.notes}>
-                    <h4>Notas:</h4>
+                    <h4>Notes:</h4>
                     <p>{book.notes}</p>
                   </div>
                 )}
@@ -542,28 +550,28 @@ export default function BookList() {
                   <div className={styles.bookResources}>
                     {book.ebook_url && (
                       <div className={styles.resourceSection}>
-                        <h4>📚 Libro Digital</h4>
+                        <h4>📚 Ebook</h4>
                         <a 
                           href={book.ebook_url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className={styles.actionButton}
                         >
-                          Leer Online
+                          Read Online
                         </a>
                       </div>
                     )}
 
                     {book.audiobook_url && (
                       <div className={styles.resourceSection}>
-                        <h4>🎧 Audiolibro</h4>
+                        <h4>🎧 Audiobook</h4>
                         <a 
                           href={book.audiobook_url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className={styles.actionButton}
                         >
-                          Escuchar Online
+                          Listen Online
                         </a>
                       </div>
                     )}
@@ -580,7 +588,7 @@ export default function BookList() {
                 }}
                 className={styles.editButton}
               >
-                Editar
+                Edit
               </button>
               <button 
                 onClick={(e) => {
@@ -589,7 +597,7 @@ export default function BookList() {
                 }}
                 className={styles.deleteButton}
               >
-                Eliminar
+                Delete
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { OpenLibraryBook, OpenLibraryResponse } from '../types/OpenLibrary';
-import { Book } from '../types/Book';
+import { Book, BookStatus } from '../types/Book';
 import styles from './BookSearch.module.css';
 
 interface BookSearchProps {
@@ -45,7 +45,7 @@ export default function BookSearch({ onAddBook }: BookSearchProps) {
   const handleAddBook = (openLibraryBook: OpenLibraryBook) => {
     const newBook: Book = {
       title: openLibraryBook.title,
-      author: openLibraryBook.author_name?.[0] || 'Autor desconocido',
+      author: openLibraryBook.author_name?.[0] || 'Unknown author',
       cover_url: openLibraryBook.cover_i 
         ? `https://covers.openlibrary.org/b/id/${openLibraryBook.cover_i}-L.jpg`
         : undefined,
@@ -53,8 +53,8 @@ export default function BookSearch({ onAddBook }: BookSearchProps) {
       publisher: openLibraryBook.publisher?.[0],
       publish_year: openLibraryBook.first_publish_year,
       language: openLibraryBook.language?.[0],
-      status: 'Por leer',
-      description: '',  // OpenLibrary no proporciona descripciones en la búsqueda
+      status: 'To read' as BookStatus,
+      description: '',  // OpenLibrary doesn't provide descriptions in search
       notes: '',
     };
 
@@ -73,7 +73,7 @@ export default function BookSearch({ onAddBook }: BookSearchProps) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por título, autor, ISBN..."
+            placeholder="Search by title, author, ISBN..."
             className={styles.searchInput}
           />
           {query && (
@@ -90,7 +90,7 @@ export default function BookSearch({ onAddBook }: BookSearchProps) {
       {isLoading ? (
         <div className={styles.loading}>
           <div className={styles.spinner}></div>
-          <p>Buscando libros...</p>
+          <p>Searching books...</p>
         </div>
       ) : results.length > 0 ? (
         <>
@@ -108,7 +108,7 @@ export default function BookSearch({ onAddBook }: BookSearchProps) {
                 )}
                 <div className={styles.bookInfo}>
                   <h3>{book.title}</h3>
-                  {book.author_name && <p className={styles.author}>Por {book.author_name[0]}</p>}
+                  {book.author_name && <p className={styles.author}>By {book.author_name[0]}</p>}
                   <div className={styles.bookDetails}>
                     {book.first_publish_year && (
                       <span className={styles.detail}>📅 {book.first_publish_year}</span>
@@ -124,7 +124,7 @@ export default function BookSearch({ onAddBook }: BookSearchProps) {
                     onClick={() => handleAddBook(book)}
                     className={styles.addButton}
                   >
-                    Agregar a mi biblioteca
+                    Add to my library
                   </button>
                 </div>
               </div>
@@ -136,14 +136,14 @@ export default function BookSearch({ onAddBook }: BookSearchProps) {
               className={styles.loadMoreButton}
               disabled={isLoading}
             >
-              Cargar más resultados
+              Load more results
             </button>
           )}
         </>
       ) : query && !isLoading && (
         <div className={styles.noResults}>
-          <p>No se encontraron resultados para "{query}"</p>
-          <p>Intenta con otros términos de búsqueda</p>
+          <p>No results found for "{query}"</p>
+          <p>Try with different search terms</p>
         </div>
       )}
     </div>
