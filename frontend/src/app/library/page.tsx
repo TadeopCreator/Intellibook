@@ -12,24 +12,32 @@ export default function Library() {
   const [error, setError] = useState<string | null>(null);
 
   const handleAddBook = async (book: any) => {
+
+    // Create FormData to handle both text fields and files
+    const formData = new FormData();
+      
+    // Add all book data fields to FormData
+    for (const [key, value] of Object.entries(book)) {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
+      }
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/books/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(book),
+        body: formData
       });
       
       if (response.ok) {
         setIsSearching(false);
         setError(null);
       } else {
-        throw new Error('Error al añadir el libro');
+        throw new Error('Error adding book');
       }
     } catch (error) {
       console.error('Error adding book:', error);
-      setError(error instanceof Error ? error.message : 'Error al añadir el libro');
+      setError(error instanceof Error ? error.message : 'Error adding book');
     }
   };
 
@@ -38,7 +46,7 @@ export default function Library() {
       <NavMenu />
       <main className={styles.main}>
         <div className={styles.header}>
-          <h1>{isSearching ? 'Buscar Libros' : 'Biblioteca'}</h1>
+          <h1>{isSearching ? 'Search Books' : 'Library'}</h1>
           <button 
             onClick={() => {
               setIsSearching(!isSearching);
@@ -49,12 +57,12 @@ export default function Library() {
             {isSearching ? (
               <>
                 <BiArrowBack size={20} />
-                <span>Volver</span>
+                <span>Back</span>
               </>
             ) : (
               <>
                 <BiSearch size={20} />
-                <span>Buscar Libros</span>
+                <span>Search Books</span>
               </>
             )}
           </button>
