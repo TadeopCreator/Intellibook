@@ -57,7 +57,7 @@ export default function AudioPlayer({
       if (isVisible) {
         audio.play()
           .then(() => setIsPlaying(true))
-          .catch(err => console.error('Error al reproducir:', err));
+          .catch(err => console.error('Error playing:', err));
       }
     };
 
@@ -114,7 +114,7 @@ export default function AudioPlayer({
         setIsPlaying(true);
       }
     } catch (err) {
-      console.error('Error al reproducir/pausar:', err);
+      console.error('Error playing/pausing:', err);
     }
   };
 
@@ -147,7 +147,7 @@ export default function AudioPlayer({
         }),
       });
     } catch (error) {
-      console.error('Error al guardar el progreso:', error);
+      console.error('Error saving progress:', error);
     }
   };
 
@@ -388,7 +388,7 @@ export default function AudioPlayer({
                 handleStopListening();
               }}
             >
-              Dejar de escuchar
+              Stop Listening
             </button>
           </div>
         ) : (
@@ -472,7 +472,7 @@ export default function AudioPlayer({
                 handleStopListening();
               }}
             >
-              Dejar de escuchar
+              Stop Listening
             </button>
           </div>
         )}
@@ -481,16 +481,16 @@ export default function AudioPlayer({
       <Modal
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
-        title="Guardar progreso"
+        title="Save Progress"
       >
         <div className={styles.modalContent}>
-          <p>¿Quieres guardar tu progreso de escucha?</p>
+          <p>Do you want to save your listening progress?</p>
           <div className={styles.modalButtons}>
             <button 
               onClick={handleConfirmSave}
               className={styles.primaryButton}
             >
-              Guardar y salir
+              Save and Exit
             </button>
             <button 
               onClick={() => {
@@ -499,7 +499,7 @@ export default function AudioPlayer({
               }}
               className={styles.secondaryButton}
             >
-              Salir sin guardar
+              Exit without Saving
             </button>
           </div>
         </div>
@@ -508,22 +508,22 @@ export default function AudioPlayer({
       <Modal
         isOpen={showStopModal}
         onClose={() => setShowStopModal(false)}
-        title="Dejar de escuchar"
+        title="Stop Listening"
       >
         <div className={styles.modalContent}>
-          <p>¿Seguro que quieres dejar de escuchar? Se guardará tu progreso.</p>
+          <p>Are you sure you want to stop listening? Your progress will be saved.</p>
           <div className={styles.modalButtons}>
             <button 
               onClick={handleConfirmStop}
               className={styles.primaryButton}
             >
-              Guardar y salir
+              Save and Exit
             </button>
             <button 
               onClick={() => setShowStopModal(false)}
               className={styles.secondaryButton}
             >
-              Cancelar
+              Cancel
             </button>
           </div>
         </div>
