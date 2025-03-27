@@ -61,7 +61,8 @@
   white-space: nowrap;
   min-width: fit-content;
   margin-bottom: 0.5rem;
-  margin-right: auto; /* Cambiado para asegurar que el botón siempre sea visible */
+  margin-right: auto;
+  justify-content: flex-start;
 }
 
 .searchButton:hover {
@@ -165,7 +166,8 @@
   .searchButton {
     font-size: 0.9rem;
     padding: 0.7rem 1rem;
-    margin: 0; /* Cambiado para asegurar que el botón siempre sea visible */
+    margin: 0;
+    justify-content: flex-start;
   }
 
   .header h1 {

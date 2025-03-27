@@ -28,7 +28,7 @@ export default function ReadingProgressTracker({
     try {
       const response = await fetch(`${API_URL}/api/books/${bookId}/progress`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json();        
         setProgress(data);
       } else {
         throw new Error('Error retrieving progress');

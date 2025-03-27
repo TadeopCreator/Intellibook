@@ -53,15 +53,16 @@ export default function Library() {
               setError(null);
             }}
             className={styles.searchButton}
+            style={{ justifyContent: 'flex-start' }}
           >
             {isSearching ? (
               <>
-                <BiArrowBack size={20} />
+                <BiArrowBack size={16} />
                 <span>Back</span>
               </>
             ) : (
               <>
-                <BiSearch size={20} />
+                <BiSearch size={16} />
                 <span>Search Books</span>
               </>
             )}
