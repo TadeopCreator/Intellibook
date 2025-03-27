@@ -405,7 +405,7 @@
   margin-bottom: 1rem;
 }
 
-/* Botón de play expandido (solo icono blanco) */
+/* Botón de play expandido */
 .expandedPlayButton {
   background: none;
   border: none;
@@ -486,7 +486,6 @@
   background: #ff8c00;
   border-radius: 50%;
   cursor: pointer;
-  margin-top: -4px;
   position: static;
 }
 

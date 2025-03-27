@@ -199,14 +199,14 @@ export default function AudioPlayer({
 
   const skipBackward = () => {
     if (audioRef.current && isLoaded) {
-      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5);
+      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10);
       setCurrentTime(audioRef.current.currentTime);
     }
   };
 
   const skipForward = () => {
     if (audioRef.current && isLoaded) {
-      audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 5);
+      audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10);
       setCurrentTime(audioRef.current.currentTime);
     }
   };
@@ -416,10 +416,10 @@ export default function AudioPlayer({
               <button 
                 className={styles.skipButton} 
                 onClick={skipBackward}
-                title="Retroceder 5 segundos"
+                title="Retroceder 10 segundos"
               >
                 <FaArrowRotateLeft size={20} />
-                <span className={styles.skipText}>5s</span>
+                <span className={styles.skipText}>10s</span>
               </button>
               
               <button 
@@ -432,10 +432,10 @@ export default function AudioPlayer({
               <button 
                 className={styles.skipButton} 
                 onClick={skipForward}
-                title="Adelantar 5 segundos"
+                title="Adelantar 10 segundos"
               >
                 <FaArrowRotateRight size={20} />
-                <span className={styles.skipText}>5s</span>
+                <span className={styles.skipText}>10s</span>
               </button>
             </div>
             
