@@ -5,6 +5,8 @@ export interface ReadingProgress {
   total_pages?: number;
   current_chapter?: string;
   audiobook_position?: number;  // Position in seconds
+  scroll_position?: number;
+  progress_percentage?: number;
   last_read_date: string;
   notes?: string;
 } 

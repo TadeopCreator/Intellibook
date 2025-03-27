@@ -1,3 +1,5 @@
+import { ReadingProgress } from './ReadingProgress';
+
 export type BookStatus = 'To read' | 'Reading' | 'Read';
 export type EbookFormat = 'pdf' | 'epub' | 'txt' | 'mobi';
 export type AudiobookFormat = 'mp3' | 'm4b' | 'aac' | 'ogg';
@@ -27,4 +29,10 @@ export interface Book {
   audiobook_url?: string;
   audiobook_path?: string;  // Ruta local del audiolibro
   audiobook_format?: AudiobookFormat;
+  progress?: {
+    last_read_date: string | null;
+    progress_percentage: number;
+    audiobook_position: number | null;
+    scroll_position: number;
+  };
 } 
