@@ -843,6 +843,7 @@ async def update_book_progress(book_id: int, progress_data: dict):
                 progress.current_chapter = progress_data['current_chapter']
             if 'audiobook_position' in progress_data:
                 progress.audiobook_position = progress_data['audiobook_position']
+            
         else:
             # Create new progress
             progress = ReadingProgress(
@@ -1005,6 +1006,67 @@ async def get_signed_url(book_id: int):
         except Exception as e:
             logger.error(f"Error generating signed URL: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/books/with-progress")
+def get_books_with_progress():
+    with Session(engine) as session:
+        # Obtener todos los libros
+        books = session.exec(select(Book)).all()
+        
+        # Crear un diccionario para almacenar el progreso por book_id
+        progress_by_book_id = {}
+        
+        # Obtener todos los registros de progreso
+        progress_records = session.exec(select(ReadingProgress)).all()
+        
+        # Organizar los registros de progreso por book_id
+        for progress in progress_records:
+            progress_by_book_id[progress.book_id] = {
+                "last_read_date": progress.last_read_date.isoformat() if progress.last_read_date else None,
+                "progress_percentage": progress.progress_percentage or 0,
+                "audiobook_position": progress.audiobook_position,
+                "scroll_position": progress.scroll_position or 0
+            }
+        
+        # Combinar la información de libros y progreso
+        result = []
+        for book in books:
+            # Convertir manualmente a diccionario para evitar problemas de serialización
+            book_dict = {
+                "id": book.id,
+                "title": book.title,
+                "author": book.author,
+                "cover_url": book.cover_url,
+                "isbn": book.isbn,
+                "publisher": book.publisher,
+                "publish_year": book.publish_year,
+                "pages": book.pages,
+                "language": book.language,
+                "description": book.description,
+                "status": book.status,
+                "start_date": book.start_date.isoformat() if book.start_date else None,
+                "finish_date": book.finish_date.isoformat() if book.finish_date else None,
+                "notes": book.notes,
+                "created_at": book.created_at.isoformat() if book.created_at else None,
+                "ebook_url": book.ebook_url,
+                "ebook_path": book.ebook_path,
+                "ebook_format": book.ebook_format,
+                "audiobook_url": book.audiobook_url,
+                "audiobook_path": book.audiobook_path,
+                "audiobook_format": book.audiobook_format
+            }
+            
+            # Añadir información de progreso
+            book_dict["progress"] = progress_by_book_id.get(book.id, {
+                "last_read_date": None,
+                "progress_percentage": 0,
+                "audiobook_position": None,
+                "scroll_position": 0
+            })
+            
+            result.append(book_dict)
+        
+        return result
 
 if __name__ == "__main__":
     import uvicorn
