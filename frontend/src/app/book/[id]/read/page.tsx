@@ -4,6 +4,7 @@ import { use } from 'react';
 import styles from './readBook.module.css';
 import { useRouter } from 'next/navigation';
 import { BiArrowBack, BiSun, BiMoon } from 'react-icons/bi';
+import { FaTextHeight, FaMinus, FaPlus } from 'react-icons/fa';
 import { Book } from '../../../types/Book';
 import Modal from '../../../components/Modal';
 import { API_URL } from '../../../config/api';
@@ -16,10 +17,24 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [fontSize, setFontSize] = useState(18); // Tamaño de fuente predeterminado
+  const [contentWidth, setContentWidth] = useState(800); // Ancho máximo del contenido
+  const [showFontControls, setShowFontControls] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { id } = use(params);
   const [viewerTheme, setViewerTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    // Cargar preferencias guardadas
+    const savedTheme = localStorage.getItem('viewerTheme') || 'dark';
+    const savedFontSize = localStorage.getItem('viewerFontSize');
+    const savedContentWidth = localStorage.getItem('viewerContentWidth');
+    
+    setViewerTheme(savedTheme as 'light' | 'dark');
+    if (savedFontSize) setFontSize(parseInt(savedFontSize));
+    if (savedContentWidth) setContentWidth(parseInt(savedContentWidth));
+  }, []);
 
   useEffect(() => {
     const fetchBookAndContent = async () => {
@@ -45,6 +60,7 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
 
         // Restaurar la posición de lectura si existe
         if (progressData?.scroll_position && contentRef.current) {
+          console.log("Progress: " + progressData.scroll_position)
           setTimeout(() => {
             if (contentRef.current) {
               contentRef.current.scrollTop = progressData.scroll_position;
@@ -61,12 +77,6 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
 
     fetchBookAndContent();
   }, [id]);
-
-  useEffect(() => {
-    // Cargar preferencia guardada o usar dark por defecto
-    const savedTheme = localStorage.getItem('viewerTheme') || 'dark';
-    setViewerTheme(savedTheme as 'light' | 'dark');
-  }, []);
 
   // Calcular el progreso de lectura
   const handleScroll = () => {
@@ -113,6 +123,22 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
     const newTheme = viewerTheme === 'light' ? 'dark' : 'light';
     setViewerTheme(newTheme);
     localStorage.setItem('viewerTheme', newTheme);
+  };
+
+  const increaseFontSize = () => {
+    const newSize = Math.min(fontSize + 2, 32); // Máximo tamaño de fuente
+    setFontSize(newSize);
+    localStorage.setItem('viewerFontSize', newSize.toString());
+  };
+
+  const decreaseFontSize = () => {
+    const newSize = Math.max(fontSize - 2, 12); // Mínimo tamaño de fuente
+    setFontSize(newSize);
+    localStorage.setItem('viewerFontSize', newSize.toString());
+  };
+
+  const toggleFontControls = () => {
+    setShowFontControls(!showFontControls);
   };
 
   if (isLoading) {
@@ -171,10 +197,40 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
           )}
         </div>
         <div className={styles.headerRight}>
+          <div className={styles.fontControls}>
+            <button
+              onClick={toggleFontControls}
+              className={styles.themeButton}
+              title="Font size controls"
+            >
+              <FaTextHeight size={18} />
+            </button>
+            
+            {showFontControls && (
+              <div className={styles.fontSizeControls}>
+                <button 
+                  onClick={decreaseFontSize} 
+                  className={styles.fontSizeButton}
+                  title="Decrease font size"
+                >
+                  <FaMinus size={14} />
+                </button>
+                <span className={styles.currentFontSize}>{fontSize}px</span>
+                <button 
+                  onClick={increaseFontSize} 
+                  className={styles.fontSizeButton}
+                  title="Increase font size"
+                >
+                  <FaPlus size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+          
           <button
             onClick={toggleViewerTheme}
             className={styles.themeButton}
-            title={viewerTheme === 'light' ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={viewerTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
           >
             {viewerTheme === 'light' ? <BiSun size={20} /> : <BiMoon size={20} />}
           </button>
@@ -193,6 +249,12 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
           ref={contentRef}
           onScroll={handleScroll}
           className={styles.content}
+          style={{ 
+            fontSize: `${fontSize}px`,
+            maxWidth: `${contentWidth}px`,
+            margin: '0 auto',
+            lineHeight: '1.6'
+          }}
         >
           {content && content.split('\n').map((paragraph, index) => (
             <p key={index}>{paragraph}</p>
