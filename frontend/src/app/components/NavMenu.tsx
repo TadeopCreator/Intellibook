@@ -1,9 +1,10 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import styles from './NavMenu.module.css';
-import { BiHome, BiLibrary, BiChat, BiMenu, BiX } from 'react-icons/bi';
+import { BiHome, BiLibrary, BiChat, BiMenu, BiX, BiStats } from 'react-icons/bi';
 import { API_URL } from '../config/api';
 
 export default function NavMenu() {
@@ -35,7 +36,13 @@ export default function NavMenu() {
 
       <nav className={`${styles.sidebar} ${isMenuOpen ? styles.open : ''}`}>
         <div className={styles.logo}>
-          <span>📚</span>
+          <Image 
+            src="/favicon.ico" 
+            alt="Intellibook Logo" 
+            width={32} 
+            height={32}
+            className={styles.logoImage}
+          />
           <h1>Intellibook</h1>
         </div>
         
@@ -61,7 +68,15 @@ export default function NavMenu() {
             className={`${styles.navLink} ${pathname === '/chat' ? styles.active : ''}`}
           >
             <BiChat size={24} />
-            <span>Assistant</span>
+            <span>Chat</span>
+          </Link>
+          
+          <Link 
+            href="/statistics" 
+            className={`${styles.navLink} ${pathname === '/statistics' ? styles.active : ''}`}
+          >
+            <BiStats size={24} />
+            <span>Statistics</span>
           </Link>
         </div>
       </nav>
