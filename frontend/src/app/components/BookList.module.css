@@ -8,18 +8,12 @@
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   width: 100%;
   padding: 1rem;
   margin-bottom: 2rem;
   box-sizing: border-box;
-}
-
-.header h2 {
-  font-size: 2rem;
-  color: #fff;
-  margin: 0;
 }
 
 .addButton {
@@ -32,6 +26,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  justify-content: flex-start;
 }
 
 .addButton:hover {
@@ -689,7 +684,7 @@
 
   .addButton {
     width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .grid {
@@ -779,4 +774,121 @@
   .addButton {
     width: auto;
   }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filterSortContainer {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.filterButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  justify-content: flex-start;
+}
+
+.filterButton:hover {
+  background: #333;
+}
+
+.dropdownContent {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  background: #222;
+  min-width: 180px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.dropdownContent button {
+  display: block;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.9rem;
+}
+
+.dropdownContent button:hover {
+  background: #333;
+}
+
+.dropdownContent button.active {
+  background: #444;
+  font-weight: 500;
+  color: #ff8c00;
+}
+
+.noBooks {
+  width: 100%;
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+/* Media queries para dispositivos móviles */
+@media (max-width: 768px) {
+  .headerActions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  
+  .filterSortContainer {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .dropdown {
+    flex: 1;
+  }
+  
+  .filterButton {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .addButton {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.lastRead {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0.5rem 0;
+  font-style: italic;
 } 

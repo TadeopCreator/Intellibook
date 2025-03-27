@@ -5,11 +5,26 @@ import styles from './BookList.module.css';
 import ReadingProgressTracker from './ReadingProgress';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
-import { BiPlus } from 'react-icons/bi';
+import { BiPlus, BiSort, BiFilter } from 'react-icons/bi';
 import { API_URL } from '../config/api';
 
+// Tipos para los filtros y ordenación
+type SortOption = 'last_read' | 'title';
+type FilterOption = 'all' | 'to_read' | 'reading' | 'read' | 'with_ebook' | 'with_audiobook';
+
+// Extender el tipo Book para incluir información de progreso
+interface BookWithProgress extends Book {
+  progress?: {
+    last_read_date: string | null;
+    progress_percentage: number;
+    audiobook_position: number | null;
+    scroll_position: number;
+  };
+}
+
 export default function BookList() {
-  const [books, setBooks] = useState<Book[]>([]);
+  const [books, setBooks] = useState<BookWithProgress[]>([]);
+  const [filteredBooks, setFilteredBooks] = useState<BookWithProgress[]>([]);
   const [newBook, setNewBook] = useState<Partial<Book>>({});
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -21,19 +36,125 @@ export default function BookList() {
   const [bookToDelete, setBookToDelete] = useState<number | null>(null);
   const [ebookFile, setEbookFile] = useState<File | null>(null);
   const [audiobookFile, setAudiobookFile] = useState<File | null>(null);
+  
+  // Estados para filtros y ordenación
+  const [sortBy, setSortBy] = useState<SortOption>('last_read');
+  const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [showSortOptions, setShowSortOptions] = useState(false);
+  const [showFilterOptions, setShowFilterOptions] = useState(false);
 
   useEffect(() => {
     fetchBooks();
   }, []);
 
+  // Aplicar filtros y ordenación cuando cambian los libros o las opciones
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [books, sortBy, filterBy]);
+
   const fetchBooks = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/books/`);
+      // Intentar primero el endpoint con progreso
+      let response = await fetch(`${API_URL}/api/books/with-progress`);
+      
+      // Si falla, usar el endpoint normal y manejar el progreso por separado
+      if (!response.ok) {
+        console.warn('Endpoint with progress failed, falling back to regular books endpoint');
+        response = await fetch(`${API_URL}/api/books/`);
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching books: ${response.status}`);
+        }
+        
+        const booksData = await response.json();
+        
+        // Cargar el progreso por separado para cada libro
+        const booksWithProgress = await Promise.all(
+          booksData.map(async (book: Book) => {
+            try {
+              const progressResponse = await fetch(`${API_URL}/api/books/${book.id}/progress`);
+              if (progressResponse.ok) {
+                const progressData = await progressResponse.json();
+                return {
+                  ...book,
+                  progress: {
+                    last_read_date: progressData.last_read_date,
+                    progress_percentage: progressData.progress_percentage || 0,
+                    audiobook_position: progressData.audiobook_position,
+                    scroll_position: progressData.scroll_position || 0
+                  }
+                };
+              }
+              return { ...book, progress: { last_read_date: null, progress_percentage: 0, audiobook_position: null, scroll_position: 0 } };
+            } catch (e) {
+              return { ...book, progress: { last_read_date: null, progress_percentage: 0, audiobook_position: null, scroll_position: 0 } };
+            }
+          })
+        );
+        
+        setBooks(booksWithProgress);
+        return;
+      }
+      
       const data = await response.json();
-      setBooks(data);
+      
+      if (Array.isArray(data)) {
+        setBooks(data);
+      } else {
+        console.error('API response is not an array:', data);
+        setBooks([]);
+      }
     } catch (error) {
       console.error('Error fetching books:', error);
+      setBooks([]);
     }
+  };
+
+  // Función para aplicar filtros y ordenación
+  const applyFiltersAndSort = () => {
+    // Asegurarse de que books sea siempre un array
+    let result = Array.isArray(books) ? [...books] : [];
+    
+    // Aplicar filtros
+    if (filterBy !== 'all') {
+      switch (filterBy) {
+        case 'to_read':
+          result = result.filter(book => book.status === 'To read');
+          break;
+        case 'reading':
+          result = result.filter(book => book.status === 'Reading');
+          break;
+        case 'read':
+          result = result.filter(book => book.status === 'Read');
+          break;
+        case 'with_ebook':
+          result = result.filter(book => book.ebook_url || book.ebook_path);
+          break;
+        case 'with_audiobook':
+          result = result.filter(book => book.audiobook_url || book.audiobook_path);
+          break;
+      }
+    }
+    
+    // Aplicar ordenación
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'last_read':
+          // Ordenar por fecha de última lectura (descendente)
+          const aDate = a.progress?.last_read_date ? new Date(a.progress.last_read_date).getTime() : 0;
+          const bDate = b.progress?.last_read_date ? new Date(b.progress.last_read_date).getTime() : 0;
+          return bDate - aDate; // Orden descendente (más reciente primero)
+        
+        case 'title':
+          // Ordenar por título (ascendente)
+          return a.title.localeCompare(b.title);
+          
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredBooks(result);
   };
 
   const handleAddBook = async (e: React.FormEvent) => {
@@ -219,17 +340,108 @@ export default function BookList() {
     setIsDeleteModalOpen(true);
   };
 
+  // Funciones para manejar filtros y ordenación
+  const handleSortChange = (option: SortOption) => {
+    setSortBy(option);
+    setShowSortOptions(false);
+  };
+
+  const handleFilterChange = (option: FilterOption) => {
+    setFilterBy(option);
+    setShowFilterOptions(false);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>My Library</h2>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className={styles.addButton}
-        >
-          <BiPlus size={20} />
-          <span>Add Book Manually</span>
-        </button>
+        <div className={styles.headerActions}>
+          {/* Botones de filtro y ordenación */}
+          <div className={styles.filterSortContainer}>
+            <div className={styles.dropdown}>
+              <button 
+                onClick={() => setShowSortOptions(!showSortOptions)}
+                className={styles.filterButton}
+              >
+                <BiSort size={16} />
+                <span>Sort: {getSortLabel(sortBy)}</span>
+              </button>
+              {showSortOptions && (
+                <div className={styles.dropdownContent}>
+                  <button 
+                    onClick={() => handleSortChange('last_read')}
+                    className={sortBy === 'last_read' ? styles.active : ''}
+                  >
+                    Last Read
+                  </button>
+                  <button 
+                    onClick={() => handleSortChange('title')}
+                    className={sortBy === 'title' ? styles.active : ''}
+                  >
+                    Title
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.dropdown}>
+              <button 
+                onClick={() => setShowFilterOptions(!showFilterOptions)}
+                className={styles.filterButton}
+              >
+                <BiFilter size={16} />
+                <span>Filter: {getFilterLabel(filterBy)}</span>
+              </button>
+              {showFilterOptions && (
+                <div className={styles.dropdownContent}>
+                  <button 
+                    onClick={() => handleFilterChange('all')}
+                    className={filterBy === 'all' ? styles.active : ''}
+                  >
+                    All Books
+                  </button>
+                  <button 
+                    onClick={() => handleFilterChange('to_read')}
+                    className={filterBy === 'to_read' ? styles.active : ''}
+                  >
+                    To Read
+                  </button>
+                  <button 
+                    onClick={() => handleFilterChange('reading')}
+                    className={filterBy === 'reading' ? styles.active : ''}
+                  >
+                    Reading
+                  </button>
+                  <button 
+                    onClick={() => handleFilterChange('read')}
+                    className={filterBy === 'read' ? styles.active : ''}
+                  >
+                    Read
+                  </button>
+                  <button 
+                    onClick={() => handleFilterChange('with_ebook')}
+                    className={filterBy === 'with_ebook' ? styles.active : ''}
+                  >
+                    With Ebook
+                  </button>
+                  <button 
+                    onClick={() => handleFilterChange('with_audiobook')}
+                    className={filterBy === 'with_audiobook' ? styles.active : ''}
+                  >
+                    With Audiobook
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button 
+            onClick={() => setIsAdding(true)}
+            className={styles.addButton}
+          >
+            <BiPlus size={16} />
+            <span>Add Book Manually</span>
+          </button>
+        </div>
       </div>
 
       <Modal 
@@ -475,134 +687,167 @@ export default function BookList() {
       </Modal>
 
       <div className={styles.bookList}>
-        {books.map((book) => (
-          <div 
-            key={book.id} 
-            className={styles.bookCard}
-            onClick={() => handleCardClick(book.id!)}
-            style={{ cursor: 'pointer' }}
-          >
-            {book.cover_url && (
-              <div className={styles.coverContainer}>
-                <img
-                  src={book.cover_url}
-                  alt={book.title}
-                  className={styles.bookCover}
-                />
-              </div>
-            )}
+        {filteredBooks.length === 0 ? (
+          <div className={styles.noBooks}>
+            <p>No books found with the current filters.</p>
+          </div>
+        ) : (
+          filteredBooks.map((book) => (
+            <div 
+              key={book.id} 
+              className={styles.bookCard}
+              onClick={() => handleCardClick(book.id!)}
+              style={{ cursor: 'pointer' }}
+            >
+              {book.cover_url && (
+                <div className={styles.coverContainer}>
+                  <img
+                    src={book.cover_url}
+                    alt={book.title}
+                    className={styles.bookCover}
+                  />
+                </div>
+              )}
 
-            <div className={styles.bookInfo}>
-              <div className={styles.bookBasicInfo}>
-                <h3>{book.title}</h3>
-                <p className={styles.author}>By {book.author}</p>
-                
+              <div className={styles.bookInfo}>
+                <div className={styles.bookBasicInfo}>
+                  <h3>{book.title}</h3>
+                  <p className={styles.author}>By {book.author}</p>
+                  
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCardExpansion(book.id!);
+                    }}
+                    className={styles.expandButton}
+                  >
+                    {expandedCards.has(book.id!) ? 'Show less' : 'Show more'}
+                  </button>
+                </div>
+
+                <div className={`${styles.expandableContent} ${expandedCards.has(book.id!) ? styles.expanded : ''}`}>
+                  <div className={styles.status}>
+                    <span className={`${styles.statusBadge} ${styles[book.status?.toLowerCase() || '']}`}>
+                      {book.status}
+                    </span>
+                  </div>
+
+                  {book.progress?.last_read_date && (
+                    <p className={styles.lastRead}>
+                      Last read: {new Date(book.progress.last_read_date).toLocaleDateString()}
+                    </p>
+                  )}
+
+                  {book.publisher && (
+                    <p className={styles.publisher}>
+                      {book.publisher}, {book.publish_year}
+                    </p>
+                  )}
+
+                  {book.description && (
+                    <div className={styles.description}>{book.description}</div>
+                  )}
+
+                  {book.start_date && (
+                    <p className={styles.dates}>
+                      Started: {new Date(book.start_date).toLocaleDateString()}
+                      {book.finish_date && ` - Finished: ${new Date(book.finish_date).toLocaleDateString()}`}
+                    </p>
+                  )}
+
+                  {book.notes && (
+                    <div className={styles.notes}>
+                      <h4>Notes:</h4>
+                      <p>{book.notes}</p>
+                    </div>
+                  )}
+
+                  <ReadingProgressTracker 
+                    bookId={book.id!}
+                    totalPages={book.pages}
+                    hasAudiobook={Boolean(book.audiobook_url || book.audiobook_path)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+
+                  {(book.ebook_url || book.audiobook_url) && (
+                    <div className={styles.bookResources}>
+                      {book.ebook_url && (
+                        <div className={styles.resourceSection}>
+                          <h4>📚 Ebook</h4>
+                          <a 
+                            href={book.ebook_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className={styles.actionButton}
+                          >
+                            Read Online
+                          </a>
+                        </div>
+                      )}
+
+                      {book.audiobook_url && (
+                        <div className={styles.resourceSection}>
+                          <h4>🎧 Audiobook</h4>
+                          <a 
+                            href={book.audiobook_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className={styles.actionButton}
+                          >
+                            Listen Online
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.bookActions}>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleCardExpansion(book.id!);
+                    startEditing(book);
                   }}
-                  className={styles.expandButton}
+                  className={styles.editButton}
                 >
-                  {expandedCards.has(book.id!) ? 'Show less' : 'Show more'}
+                  Edit
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDeleteModal(book.id!);
+                  }}
+                  className={styles.deleteButton}
+                >
+                  Delete
                 </button>
               </div>
-
-              <div className={`${styles.expandableContent} ${expandedCards.has(book.id!) ? styles.expanded : ''}`}>
-                <div className={styles.status}>
-                  <span className={`${styles.statusBadge} ${styles[book.status?.toLowerCase() || '']}`}>
-                    {book.status}
-                  </span>
-                </div>
-
-                {book.publisher && (
-                  <p className={styles.publisher}>
-                    {book.publisher}, {book.publish_year}
-                  </p>
-                )}
-
-                {book.description && (
-                  <div className={styles.description}>{book.description}</div>
-                )}
-
-                {book.start_date && (
-                  <p className={styles.dates}>
-                    Started: {new Date(book.start_date).toLocaleDateString()}
-                    {book.finish_date && ` - Finished: ${new Date(book.finish_date).toLocaleDateString()}`}
-                  </p>
-                )}
-
-                {book.notes && (
-                  <div className={styles.notes}>
-                    <h4>Notes:</h4>
-                    <p>{book.notes}</p>
-                  </div>
-                )}
-
-                <ReadingProgressTracker 
-                  bookId={book.id!}
-                  totalPages={book.pages}
-                  hasAudiobook={Boolean(book.audiobook_url || book.audiobook_path)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-
-                {(book.ebook_url || book.audiobook_url) && (
-                  <div className={styles.bookResources}>
-                    {book.ebook_url && (
-                      <div className={styles.resourceSection}>
-                        <h4>📚 Ebook</h4>
-                        <a 
-                          href={book.ebook_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className={styles.actionButton}
-                        >
-                          Read Online
-                        </a>
-                      </div>
-                    )}
-
-                    {book.audiobook_url && (
-                      <div className={styles.resourceSection}>
-                        <h4>🎧 Audiobook</h4>
-                        <a 
-                          href={book.audiobook_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className={styles.actionButton}
-                        >
-                          Listen Online
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
-
-            <div className={styles.bookActions}>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  startEditing(book);
-                }}
-                className={styles.editButton}
-              >
-                Edit
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openDeleteModal(book.id!);
-                }}
-                className={styles.deleteButton}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
+}
+
+// Funciones auxiliares para obtener etiquetas legibles
+function getSortLabel(option: SortOption): string {
+  switch (option) {
+    case 'last_read': return 'Last Read';
+    case 'title': return 'Title';
+    default: return 'Last Read';
+  }
+}
+
+function getFilterLabel(option: FilterOption): string {
+  switch (option) {
+    case 'all': return 'All Books';
+    case 'to_read': return 'To Read';
+    case 'reading': return 'Reading';
+    case 'read': return 'Read';
+    case 'with_ebook': return 'With Ebook';
+    case 'with_audiobook': return 'With Audiobook';
+    default: return 'All Books';
+  }
 } 
