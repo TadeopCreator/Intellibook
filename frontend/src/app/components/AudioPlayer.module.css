@@ -673,4 +673,40 @@
   .playerContainer {
     left: 250px;
   }
+}
+
+.speedControl {
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.speedButton {
+  background: rgba(255, 140, 0, 0.1);
+  border: 1px solid #ff8c00;
+  color: #ff8c00;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  min-width: 60px;
+}
+
+.speedButton:hover {
+  background: rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .speedButton {
+    background: rgba(255, 140, 0, 0.1);
+    border-color: #ff8c00;
+    color: #ff8c00;
+  }
+
+  .speedButton:hover {
+    background: rgba(255, 140, 0, 0.2);
+  }
 } 

@@ -41,6 +41,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)  # Ensure output goes to stdout
     ]
 )
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Explicitly set logger level
 
@@ -61,6 +62,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Definir las rutas de los directorios

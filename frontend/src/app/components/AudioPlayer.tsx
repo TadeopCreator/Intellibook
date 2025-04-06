@@ -36,6 +36,7 @@ export default function AudioPlayer({
   const [showStopModal, setShowStopModal] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimizing, setIsMinimizing] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -319,6 +320,60 @@ export default function AudioPlayer({
     }, 300); // Duración de la animación
   };
 
+  useEffect(() => {
+    // Add keyboard event listeners
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent default behavior for these keys to avoid page scrolling
+      if ([' ', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.code)) {
+        e.preventDefault();
+      }
+
+      // Prevent space key from scrolling the page
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+      }
+
+      switch (e.code) {
+        case 'Space':
+          togglePlay();
+          break;
+        case 'ArrowLeft':
+          skipBackward();
+          break;
+        case 'ArrowRight':
+          skipForward();
+          break;
+        case 'Escape':
+          if (isExpanded) {
+            handleMinimize(e as unknown as React.MouseEvent);
+          }
+          break;
+      }
+    };
+
+    // Only add event listeners if the player is visible
+    if (isVisible) {
+      window.addEventListener('keydown', handleKeyDown, { capture: true });
+    }
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [isVisible, togglePlay, skipBackward, skipForward, isExpanded, handleMinimize]);
+
+  const togglePlaybackSpeed = () => {
+    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    const currentIndex = speeds.indexOf(playbackSpeed);
+    const nextIndex = (currentIndex + 1) % speeds.length;
+    const nextSpeed = speeds[nextIndex];
+    
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+      setPlaybackSpeed(nextSpeed);
+    }
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -436,6 +491,16 @@ export default function AudioPlayer({
               >
                 <FaArrowRotateRight size={20} />
                 <span className={styles.skipText}>10s</span>
+              </button>
+            </div>
+
+            <div className={styles.speedControl}>
+              <button 
+                className={styles.speedButton}
+                onClick={togglePlaybackSpeed}
+                title={`Playback speed: ${playbackSpeed}x`}
+              >
+                {playbackSpeed}x
               </button>
             </div>
             
