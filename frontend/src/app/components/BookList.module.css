@@ -891,4 +891,75 @@
   color: #666;
   margin: 0.5rem 0;
   font-style: italic;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(to right, #f0f0f0 8%, #e0e0e0 18%, #f0f0f0 33%);
+  background-size: 2000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+.bookCardSkeleton {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.coverSkeleton {
+  width: 100%;
+  padding-top: 150%;
+  composes: skeleton;
+}
+
+.infoSkeleton {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.titleSkeleton {
+  height: 24px;
+  width: 80%;
+  composes: skeleton;
+  border-radius: 4px;
+}
+
+.authorSkeleton {
+  height: 18px;
+  width: 60%;
+  composes: skeleton;
+  border-radius: 4px;
+}
+
+.statusSkeleton {
+  height: 20px;
+  width: 40%;
+  composes: skeleton;
+  border-radius: 4px;
+}
+
+/* Dark mode skeleton styles */
+@media (prefers-color-scheme: dark) {
+  .skeleton {
+    background: linear-gradient(to right, #2a2a2a 8%, #333 18%, #2a2a2a 33%);
+  }
+
+  .bookCardSkeleton {
+    background: #1a1a1a;
+  }
 } 

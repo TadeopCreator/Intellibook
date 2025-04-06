@@ -42,6 +42,7 @@ export default function BookList() {
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchBooks();
@@ -53,6 +54,7 @@ export default function BookList() {
   }, [books, sortBy, filterBy]);
 
   const fetchBooks = async () => {
+    setIsLoading(true);
     try {
       // Intentar primero el endpoint con progreso
       let response = await fetch(`${API_URL}/api/books/with-progress`);
@@ -107,6 +109,8 @@ export default function BookList() {
     } catch (error) {
       console.error('Error fetching books:', error);
       setBooks([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -687,7 +691,19 @@ export default function BookList() {
       </Modal>
 
       <div className={styles.bookList}>
-        {filteredBooks.length === 0 ? (
+        {isLoading ? (
+          // Skeleton loader
+          Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className={styles.bookCardSkeleton}>
+              <div className={styles.coverSkeleton} />
+              <div className={styles.infoSkeleton}>
+                <div className={styles.titleSkeleton} />
+                <div className={styles.authorSkeleton} />
+                <div className={styles.statusSkeleton} />
+              </div>
+            </div>
+          ))
+        ) : filteredBooks.length === 0 ? (
           <div className={styles.noBooks}>
             <p>No books found with the current filters.</p>
           </div>
