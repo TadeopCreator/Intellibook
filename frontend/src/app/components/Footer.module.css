@@ -1,0 +1,49 @@
+.footer {
+  margin-top: auto;
+  padding: 1.5rem 0;
+  background-color: var(--background-secondary);
+  border-top: 1px solid var(--border-color);
+  width: 100%;
+  position: relative;
+  z-index: 1; /* Lower than navbar but still above content */
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.copyright {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.links a {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.links a:hover {
+  color: #ff8c00; /* Orange to match the navbar active links */
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .container {
+    flex-direction: column;
+    text-align: center;
+  }
+} 

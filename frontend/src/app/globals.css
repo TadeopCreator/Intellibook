@@ -1,12 +1,20 @@
 :root {
   --background: #ffffff;
+  --background-secondary: #f5f5f5;
   --foreground: #171717;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --accent-color: #0070f3;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
+    --background-secondary: #141414;
     --foreground: #ededed;
+    --text-secondary: #a0a0a0;
+    --border-color: #333333;
+    --accent-color: #3291ff;
   }
 }
 
@@ -38,5 +46,37 @@ a {
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
+  }
+}
+
+/* Utility classes */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* Layout adjustments for fixed navbar */
+@media (min-width: 1200px) {
+  .flex-col {
+    padding-left: 250px; /* Same as navbar width */
+  }
+  
+  /* For pages that already handle their own margin with NavMenu */
+  /* This ensures the footer doesn't overlap with page content */
+  .flex-col > :not(footer) {
+    min-height: calc(100vh - 80px); /* Subtract footer height */
+  }
+}
+
+@media (max-width: 1199px) {
+  .flex-col {
+    padding-top: 4rem; /* Space for mobile menu button */
   }
 }
