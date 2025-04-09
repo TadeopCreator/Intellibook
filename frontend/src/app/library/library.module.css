@@ -8,7 +8,7 @@
 }
 
 .content {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0;
   width: 100%;
@@ -20,7 +20,7 @@
 .main {
   flex: 1;
   padding: 2rem;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   width: 100%;
 }
@@ -208,5 +208,10 @@
 @media (min-width: 1200px) {
   .container {
     margin-left: 250px;
+    width: calc(100% - 250px);
+  }
+  
+  .main {
+    padding: 2rem 1rem;
   }
 } 

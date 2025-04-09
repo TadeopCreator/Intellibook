@@ -1,6 +1,6 @@
 .container {
   width: 100%;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 1rem;
   box-sizing: border-box;
@@ -38,6 +38,7 @@
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-top: 2rem;
+  width: 100%;
 }
 
 .bookCard {
@@ -323,16 +324,20 @@
   border: none;
   border-radius: 8px;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
   gap: 0.5rem;
+  width: 100%;
+  max-width: 250px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .actionButton:hover {
   background: #e67e00;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Dark mode */
@@ -961,5 +966,24 @@
 
   .bookCardSkeleton {
     background: #1a1a1a;
+  }
+}
+
+/* For larger screens, adjust to show more books per row */
+@media (min-width: 1200px) {
+  .container {
+    width: calc(100% - 250px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .bookList {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .bookList {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
 } 

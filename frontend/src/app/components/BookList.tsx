@@ -785,37 +785,36 @@ export default function BookList() {
                     onClick={(e) => e.stopPropagation()}
                   />
 
-                  {(book.ebook_url || book.audiobook_url) && (
-                    <div className={styles.bookResources}>
-                      {book.ebook_url && (
-                        <div className={styles.resourceSection}>
-                          <h4>📚 Ebook</h4>
-                          <a 
-                            href={book.ebook_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className={styles.actionButton}
-                          >
-                            Read Online
-                          </a>
-                        </div>
-                      )}
+                  <div className={styles.bookResources}>
+                    {(book.ebook_url || book.ebook_path) && (
+                      <div className={styles.resourceSection}>
+                        <h4>📚 Ebook</h4>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/book/${book.id}/read`);
+                          }}
+                          className={styles.actionButton}
+                        >
+                          {(book.progress?.progress_percentage || 0) > 0 ? 'Continue Reading' : 'Read Online'}
+                        </button>
+                      </div>
+                    )}
 
-                      {book.audiobook_url && (
-                        <div className={styles.resourceSection}>
-                          <h4>🎧 Audiobook</h4>
-                          <a 
-                            href={book.audiobook_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className={styles.actionButton}
-                          >
-                            Listen Online
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    {(book.audiobook_url || book.audiobook_path) && (
+                      <div className={styles.resourceSection}>
+                        <h4>🎧 Audiobook</h4>
+                        <a 
+                          href={book.audiobook_url || `/api/books/${book.id}/listen`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className={styles.actionButton}
+                        >
+                          Listen Online
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
