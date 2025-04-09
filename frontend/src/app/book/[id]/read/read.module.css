@@ -4,16 +4,56 @@
   transition: all 0.3s ease;
 }
 
-/* Tema claro */
+/* Light theme */
 .light {
-  background: #fff;
-  color: #333;
+  background: #fff !important;
+  color: #333 !important;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
-/* Tema oscuro (default) */
+.light p, .light span, .light div, .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+  color: #333 !important;
+}
+
+.light code, .light pre, .light blockquote {
+  color: #333 !important;
+  background-color: #f5f5f5 !important;
+  border-color: #e0e0e0 !important;
+}
+
+.light a {
+  color: #0066cc !important;
+}
+
+.light a:hover {
+  color: #004080 !important;
+}
+
+/* Dark theme (default) */
 .dark {
-  background: #1a1a1a;
-  color: #e0e0e0;
+  background: #1a1a1a !important;
+  color: #e0e0e0 !important;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.dark p, .dark span, .dark div, .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #e0e0e0 !important;
+}
+
+.dark code, .dark pre, .dark blockquote {
+  color: #e0e0e0 !important;
+  background-color: #2a2a2a !important;
+  border-color: #444 !important;
+}
+
+.dark a {
+  color: #ff8c00 !important;
+}
+
+.dark a:hover {
+  color: #ffb74d !important;
 }
 
 .themeToggle {
@@ -58,14 +98,6 @@
 .dark blockquote {
   border-left-color: #444;
   background: #2a2a2a;
-}
-
-.dark a {
-  color: #ff8c00;
-}
-
-.dark a:hover {
-  color: #ffb74d;
 }
 
 /* Ajustes de legibilidad para modo oscuro */

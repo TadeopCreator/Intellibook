@@ -1,10 +1,9 @@
 .container {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   padding: 1rem;
-  margin-left: 0;
   background: #111;
-  box-sizing: border-box;
 }
 
 .header {
@@ -63,9 +62,9 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.7rem 1.2rem;
-  background: #f5f5f5;
-  color: #666;
-  border: 1px solid #eee;
+  background: #2a2a2a;
+  color: #999;
+  border: 1px solid #333;
   border-radius: 8px;
   font-size: 0.95rem;
   cursor: pointer;
@@ -73,9 +72,9 @@
 }
 
 .backButton:hover {
-  background: #eee;
-  color: #333;
-  border-color: #ddd;
+  background: #333;
+  color: #fff;
+  border-color: #444;
 }
 
 .themeButton {
@@ -83,51 +82,260 @@
   align-items: center;
   justify-content: center;
   padding: 0.7rem;
-  background: #f5f5f5;
-  color: #666;
-  border: 1px solid #eee;
+  background: #2a2a2a;
+  color: #999;
+  border: 1px solid #333;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .themeButton:hover {
-  background: #eee;
-  color: #333;
-  border-color: #ddd;
+  background: #333;
+  color: #fff;
+  border-color: #444;
 }
 
 .contentWrapper {
-  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  padding: 0 1rem;
-  border-radius: 12px;
-  overflow: hidden;
+  padding: 0 80px;
+  position: relative;
 }
 
 .content {
-  height: calc(100vh - 200px);
-  padding: 2rem 1.5rem;
+  flex: 1;
+  padding: 2rem;
+  width: 100%;
+  height: 100%;
   overflow-y: auto;
-  overflow-x: hidden;
-  font-size: 1.2rem;
-  line-height: 1.8;
+  transition: all 0.3s ease;
 }
 
-.content p {
-  max-width: 65ch;
-  margin: 0 auto 1.5rem;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+.paginatedContent {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 320px;
+  height: 400px;
+  overflow-y: auto;
+  padding: 2rem;
+  transition: background 0.3s ease, color 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Media queries para dispositivos móviles */
+.paginatedContent > div {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.paginatedContent p {
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.progressBarContainer {
+  width: 100%;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: #ff8c00;
+  transition: width 0.3s ease;
+}
+
+.paginationWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  position: relative;
+  max-width: 950px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.pageNavButton {
+  background: rgba(255, 140, 0, 0.2);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 1.2rem;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 35%;
+  transform: translateY(-50%);
+  z-index: 10;
+  height: 80px;
+  width: 80px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+}
+
+.pageNavButton:first-child {
+  left: -20px;
+}
+
+.pageNavButton:last-child {
+  right: -20px;
+}
+
+.pageNavButton:hover:not(:disabled) {
+  background: rgba(255, 140, 0, 0.4);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.pageNavButton:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.pageNavButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pageNavButton svg {
+  font-size: 2.2rem;
+}
+
+/* Responsive styles */
 @media (max-width: 768px) {
   .container {
     padding: 0.5rem;
   }
 
+  .content {
+    padding: 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .paginatedContent {
+    min-height: 350px;
+    height: 450px;
+    padding: 1.5rem;
+  }
+
+  .contentWrapper {
+    padding: 0 65px;
+  }
+
+  .pageNavButton {
+    height: 60px;
+    width: 60px;
+    padding: 0.8rem;
+  }
+
+  .pageNavButton svg {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.3rem;
+  }
+
+  .content {
+    padding: 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .paginatedContent {
+    min-height: 300px;
+    height: 400px;
+    padding: 1rem;
+  }
+
+  .contentWrapper {
+    padding: 0 55px;
+  }
+
+  .pageNavButton {
+    height: 50px;
+    width: 50px;
+    padding: 0.6rem;
+    top: 35%;
+  }
+
+  .pageNavButton:first-child {
+    left: -5px;
+  }
+
+  .pageNavButton:last-child {
+    right: -5px;
+  }
+
+  .pageNavButton svg {
+    font-size: 1.6rem;
+  }
+}
+
+/* Remove all gradient-related styles */
+.contentWrapper::before,
+.contentWrapper::after {
+  display: none;
+}
+
+/* Dark mode specific styles */
+@media (prefers-color-scheme: dark) {
+  .container {
+    background: #111;
+  }
+
+  .content p {
+    color: #e6e6e6;
+  }
+
+  .loadingMessage {
+    color: #999;
+  }
+
+  .errorMessage {
+    color: #ff6b6b;
+  }
+
+  .bookTitle {
+    color: #fff;
+  }
+
+  .bookReader {
+    color: #b3b3b3;
+  }
+}
+
+/* Remove theme-specific background styles */
+.lightTheme,
+.darkTheme {
+  background: none;
+}
+
+.lightTheme::before,
+.lightTheme::after,
+.darkTheme::before,
+.darkTheme::after {
+  display: none;
+}
+
+/* Media queries para dispositivos móviles */
+@media (max-width: 768px) {
   .header {
     padding: 0.8rem;
     flex-direction: column;
@@ -179,18 +387,9 @@
 }
 
 @media (max-width: 480px) {
-  .container {
-    padding: 0.3rem;
-  }
-
   .header {
     padding: 0.5rem;
     margin-bottom: 1rem;
-  }
-
-  .content {
-    padding: 0.8rem;
-    font-size: 0.95rem;
   }
 
   .backButton,
@@ -212,26 +411,6 @@
   }
 }
 
-/* Gradientes estáticos */
-.contentWrapper::before,
-.contentWrapper::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 150px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.contentWrapper::before {
-  top: 0;
-}
-
-.contentWrapper::after {
-  bottom: 0;
-}
-
 .loadingMessage,
 .errorMessage {
   text-align: center;
@@ -242,133 +421,6 @@
 
 .errorMessage {
   color: #dc3545;
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .container {
-    background: #111;
-  }
-
-  .header {
-    border-color: #333;
-  }
-
-  .backButton {
-    background: #2a2a2a;
-    color: #999;
-    border-color: #333;
-  }
-
-  .backButton:hover {
-    background: #333;
-    color: #fff;
-    border-color: #444;
-  }
-
-  .contentWrapper::before {
-    background: linear-gradient(to bottom, 
-      rgb(17, 17, 17) 0%,
-      rgba(17, 17, 17, 0.9) 20%,
-      rgba(17, 17, 17, 0) 100%
-    );
-  }
-
-  .contentWrapper::after {
-    background: linear-gradient(to top, 
-      rgb(17, 17, 17) 0%,
-      rgba(17, 17, 17, 0.9) 20%,
-      rgba(17, 17, 17, 0) 100%
-    );
-  }
-
-  .content p {
-    color: #e6e6e6;
-  }
-
-  .loadingMessage {
-    color: #999;
-  }
-
-  .errorMessage {
-    color: #ff6b6b;
-  }
-
-  .themeButton {
-    background: #2a2a2a;
-    color: #999;
-    border-color: #333;
-  }
-
-  .themeButton:hover {
-    background: #333;
-    color: #fff;
-    border-color: #444;
-  }
-
-  .bookTitle {
-    color: #fff;
-  }
-
-  .bookReader {
-    color: #b3b3b3;
-  }
-
-  .progressBar {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .progressFill {
-    background: #ff8c00;
-  }
-}
-
-.lightTheme {
-  background: #fff;
-}
-
-.lightTheme p {
-  color: #333;
-}
-
-.lightTheme::before {
-  background: linear-gradient(to bottom, 
-    rgb(255, 255, 255) 0%,
-    rgba(255, 255, 255, 0.95) 30%,
-    rgba(255, 255, 255, 0) 100%
-  );
-}
-
-.lightTheme::after {
-  background: linear-gradient(to top, 
-    rgb(255, 255, 255) 0%,
-    rgba(255, 255, 255, 0.95) 30%,
-    rgba(255, 255, 255, 0) 100%
-  );
-}
-
-.darkTheme {
-  background: #111;
-}
-
-.darkTheme p {
-  color: #e6e6e6;
-}
-
-.darkTheme::before {
-  background: linear-gradient(to bottom, 
-    rgb(17, 17, 17) 0%,
-    rgba(17, 17, 17, 0.95) 30%,
-    rgba(17, 17, 17, 0) 100%
-  );
-}
-
-.darkTheme::after {
-  background: linear-gradient(to top, 
-    rgb(17, 17, 17) 0%,
-    rgba(17, 17, 17, 0.95) 30%,
-    rgba(17, 17, 17, 0) 100%
-  );
 }
 
 /* Estilos para diferentes elementos de texto */
@@ -557,4 +609,22 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Modal button styling */
+.cancelButton {
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #eee;
+}
+
+.cancelButton:hover {
+  background: #eee;
+  color: #333;
+  border-color: #ddd;
 }
