@@ -14,7 +14,7 @@ const Footer = () => {
             GitHub
           </Link>
           <Link href="https://x.com/Tadeop44" target="_blank" rel="noopener noreferrer">
-            X
+            X (Twitter)
           </Link>
         </div>
       </div>
