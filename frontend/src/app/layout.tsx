@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AudioProvider } from './context/AudioContext';
+import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from 'next-themes';
 import Footer from './components/Footer';
 
@@ -36,12 +37,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <AudioProvider>
-            <div className="flex flex-col min-h-screen">
-              {children}
-              <Footer />
-            </div>
-          </AudioProvider>
+          <AuthProvider>
+            <AudioProvider>
+              <div className="flex flex-col min-h-screen">
+                {children}
+                <Footer />
+              </div>
+            </AudioProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

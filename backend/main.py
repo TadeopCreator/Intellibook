@@ -11,7 +11,7 @@ import sqlalchemy
 from datetime import datetime, timedelta
 import time
 
-from fastapi import FastAPI, File, HTTPException, UploadFile, Request
+from fastapi import FastAPI, File, HTTPException, UploadFile, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -29,6 +29,7 @@ from ebooklib import epub
 from bs4 import BeautifulSoup
 
 from google.cloud import storage
+from auth import get_current_user
 
 # Load environment variables first, before setting any variables that depend on them
 load_dotenv()
@@ -58,7 +59,7 @@ app = FastAPI()
 # Configurar CORS para permitir acceso desde el frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[os.getenv('FRONTEND_URL', 'http://localhost:3000')],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -295,7 +296,7 @@ chat_manager = ChatSessionManager()
 
 # Modify the ask_gemini endpoint
 @app.get("/api/ask-gemini")
-async def ask_gemini(question: str, session_id: Optional[str] = None):
+async def ask_gemini(question: str, session_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     try:
         logger.debug(f"Received question: {question}")
         
@@ -547,6 +548,7 @@ def copy_file_to_storage(source_path: str, book_type: str) -> str:
 @app.post("/api/books/")
 async def create_book(
     request: Request,
+    current_user: dict = Depends(get_current_user),
     ebook_file: UploadFile = File(None),
     audiobook_file: UploadFile = File(None)
 ):
@@ -642,6 +644,7 @@ async def create_book(
 async def update_book(
     book_id: int,
     request: Request,
+    current_user: dict = Depends(get_current_user),
     ebook_file: UploadFile = File(None),
     audiobook_file: UploadFile = File(None)
 ):
@@ -735,13 +738,74 @@ async def update_book(
     
 
 @app.get("/api/books/", response_model=List[Book])
-def get_books():
+def get_books(current_user: dict = Depends(get_current_user)):
     with Session(engine) as session:
         books = session.exec(select(Book)).all()
         return books
 
+@app.get("/api/books/with-progress")
+def get_books_with_progress(current_user: dict = Depends(get_current_user)):
+    with Session(engine) as session:
+        # Obtener todos los libros
+        books = session.exec(select(Book)).all()
+        
+        # Crear un diccionario para almacenar el progreso por book_id
+        progress_by_book_id = {}
+        
+        # Obtener todos los registros de progreso
+        progress_records = session.exec(select(ReadingProgress)).all()
+        
+        # Organizar los registros de progreso por book_id
+        for progress in progress_records:
+            progress_by_book_id[progress.book_id] = {
+                "last_read_date": progress.last_read_date.isoformat() if progress.last_read_date else None,
+                "progress_percentage": progress.progress_percentage or 0,
+                "audiobook_position": progress.audiobook_position,
+                "scroll_position": progress.scroll_position or 0
+            }
+        
+        # Combinar la información de libros y progreso
+        result = []
+        for book in books:
+            # Convertir manualmente a diccionario para evitar problemas de serialización
+            book_dict = {
+                "id": book.id,
+                "title": book.title,
+                "author": book.author,
+                "cover_url": book.cover_url,
+                "isbn": book.isbn,
+                "publisher": book.publisher,
+                "publish_year": book.publish_year,
+                "pages": book.pages,
+                "language": book.language,
+                "description": book.description,
+                "status": book.status,
+                "start_date": book.start_date.isoformat() if book.start_date else None,
+                "finish_date": book.finish_date.isoformat() if book.finish_date else None,
+                "notes": book.notes,
+                "created_at": book.created_at.isoformat() if book.created_at else None,
+                "ebook_url": book.ebook_url,
+                "ebook_path": book.ebook_path,
+                "ebook_format": book.ebook_format,
+                "audiobook_url": book.audiobook_url,
+                "audiobook_path": book.audiobook_path,
+                "audiobook_format": book.audiobook_format
+            }
+            
+            # Añadir información de progreso
+            book_dict["progress"] = progress_by_book_id.get(book.id, {
+                "last_read_date": None,
+                "progress_percentage": 0,
+                "audiobook_position": None,
+                "scroll_position": 0
+            })
+            
+            result.append(book_dict)
+        
+        return result
+
 @app.get("/api/books/{book_id}", response_model=Book)
-def get_book(book_id: int):
+def get_book(book_id: int, current_user: dict = Depends(get_current_user)):
     with Session(engine) as session:
         book = session.get(Book, book_id)
         if not book:
@@ -749,7 +813,7 @@ def get_book(book_id: int):
         return book
 
 @app.delete("/api/books/{book_id}")
-def delete_book(book_id: int):
+def delete_book(book_id: int, current_user: dict = Depends(get_current_user)):
     with Session(engine) as session:
         try:
             # Primero eliminar los registros de progreso asociados
@@ -790,7 +854,7 @@ def delete_book(book_id: int):
 
 # Get progress for a book
 @app.get("/api/books/{book_id}/progress", response_model=ReadingProgress)
-def get_book_progress(book_id: int):
+def get_book_progress(book_id: int, current_user: dict = Depends(get_current_user)):
     with Session(engine) as session:
         progress = session.exec(
             select(ReadingProgress).where(ReadingProgress.book_id == book_id)
@@ -825,7 +889,11 @@ def get_book_progress(book_id: int):
 
 # Update or create progress
 @app.put("/api/books/{book_id}/progress")
-async def update_book_progress(book_id: int, progress_data: dict):
+async def update_book_progress(
+    book_id: int, 
+    progress_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
     with Session(engine) as session:
         progress = session.exec(
             select(ReadingProgress).where(ReadingProgress.book_id == book_id)
@@ -879,7 +947,7 @@ def extract_text_from_pdf(pdf_path):
     return '\n\n'.join(text)
 
 @app.get("/api/books/{book_id}/content")
-async def get_book_content(book_id: int):
+async def get_book_content(book_id: int, current_user: dict = Depends(get_current_user)):
     logger.debug(f"Attempting to get content for book ID: {book_id}")
     
     with Session(engine) as session:
@@ -979,7 +1047,7 @@ async def get_book_content(book_id: int):
                 pass
 
 @app.get("/api/signed-url/{book_id}")
-async def get_signed_url(book_id: int):
+async def get_signed_url(book_id: int, current_user: dict = Depends(get_current_user)):
     with Session(engine) as session:
         book = session.get(Book, book_id)
         if not book or not book.audiobook_url:
@@ -1009,66 +1077,61 @@ async def get_signed_url(book_id: int):
             logger.error(f"Error generating signed URL: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/books/with-progress")
-def get_books_with_progress():
-    with Session(engine) as session:
-        # Obtener todos los libros
-        books = session.exec(select(Book)).all()
+# Add a public endpoint to check if user has valid token without requiring auth
+@app.get("/api/auth/check")
+async def check_auth_status(request: Request):
+    """
+    Check authentication status without requiring authentication.
+    Returns user info if token is valid, or error if not.
+    """
+    try:
+        # Get token from Authorization header
+        auth_header = request.headers.get("authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return {"authenticated": False, "user": None}
         
-        # Crear un diccionario para almacenar el progreso por book_id
-        progress_by_book_id = {}
+        access_token = auth_header.split(" ")[1]
         
-        # Obtener todos los registros de progreso
-        progress_records = session.exec(select(ReadingProgress)).all()
+        # Use the access token to get user info from Google's userinfo API
+        import httpx
         
-        # Organizar los registros de progreso por book_id
-        for progress in progress_records:
-            progress_by_book_id[progress.book_id] = {
-                "last_read_date": progress.last_read_date.isoformat() if progress.last_read_date else None,
-                "progress_percentage": progress.progress_percentage or 0,
-                "audiobook_position": progress.audiobook_position,
-                "scroll_position": progress.scroll_position or 0
-            }
-        
-        # Combinar la información de libros y progreso
-        result = []
-        for book in books:
-            # Convertir manualmente a diccionario para evitar problemas de serialización
-            book_dict = {
-                "id": book.id,
-                "title": book.title,
-                "author": book.author,
-                "cover_url": book.cover_url,
-                "isbn": book.isbn,
-                "publisher": book.publisher,
-                "publish_year": book.publish_year,
-                "pages": book.pages,
-                "language": book.language,
-                "description": book.description,
-                "status": book.status,
-                "start_date": book.start_date.isoformat() if book.start_date else None,
-                "finish_date": book.finish_date.isoformat() if book.finish_date else None,
-                "notes": book.notes,
-                "created_at": book.created_at.isoformat() if book.created_at else None,
-                "ebook_url": book.ebook_url,
-                "ebook_path": book.ebook_path,
-                "ebook_format": book.ebook_format,
-                "audiobook_url": book.audiobook_url,
-                "audiobook_path": book.audiobook_path,
-                "audiobook_format": book.audiobook_format
-            }
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
             
-            # Añadir información de progreso
-            book_dict["progress"] = progress_by_book_id.get(book.id, {
-                "last_read_date": None,
-                "progress_percentage": 0,
-                "audiobook_position": None,
-                "scroll_position": 0
-            })
+            if response.status_code != 200:
+                return {"authenticated": False, "user": None, "error": "Invalid token"}
             
-            result.append(book_dict)
+            user_info = response.json()
         
-        return result
+        # Check if the email matches the allowed email
+        allowed_email = os.getenv('ALLOWED_EMAIL')
+        if user_info.get('email') != allowed_email:
+            return {"authenticated": False, "user": None, "error": "Access denied"}
+        
+        return {
+            "authenticated": True,
+            "user": {
+                "email": user_info.get("email"),
+                "name": user_info.get("name")
+            }
+        }
+    except Exception as e:
+        logger.debug(f"Auth check failed: {str(e)}")
+        return {"authenticated": False, "user": None, "error": str(e)}
+
+# Keep the existing protected endpoint for authenticated requests
+@app.get("/api/auth/status")
+async def auth_status(current_user: dict = Depends(get_current_user)):
+    return {
+        "authenticated": True,
+        "user": {
+            "email": current_user.get("email"),
+            "name": current_user.get("name")
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn

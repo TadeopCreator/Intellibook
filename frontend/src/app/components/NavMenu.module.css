@@ -33,6 +33,39 @@
   margin: 0;
 }
 
+/* User Info Styles */
+.userInfo {
+  display: flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  margin-bottom: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.userDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmail {
+  font-size: 0.75rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .navLinks {
   display: flex;
   flex-direction: column;
@@ -71,6 +104,30 @@
   background: #ffe0b2;  /* Un tono más claro al hover */
 }
 
+/* Auth Button Styles */
+.authButton {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background: none;
+  border: none;
+  text-decoration: none;
+  color: #666;
+  transition: all 0.2s;
+  font-size: 1rem;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  margin-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.authButton:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   .sidebar {
@@ -80,6 +137,18 @@
 
   .logo h1 {
     color: #fff;
+  }
+
+  .userInfo {
+    background: #2a2a2a;
+  }
+
+  .userName {
+    color: #fff;
+  }
+
+  .userEmail {
+    color: #999;
   }
 
   .navLink {
@@ -104,6 +173,16 @@
 
   .activeLink:hover {
     background: #613d00;  /* Un tono más oscuro al hover */
+  }
+
+  .authButton {
+    color: #999;
+    border-top-color: #333;
+  }
+
+  .authButton:hover {
+    background: #2a2a2a;
+    color: #fff;
   }
 }
 

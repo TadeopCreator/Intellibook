@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { ReadingProgress } from '../types/ReadingProgress';
 import styles from './ReadingProgress.module.css';
-import { API_URL } from '../config/api';
+import { api } from '../services/api';
 
 interface ReadingProgressTrackerProps {
   bookId: number;
@@ -26,7 +26,7 @@ export default function ReadingProgressTracker({
 
   const fetchProgress = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/books/${bookId}/progress`);
+      const response = await api.progress.get(bookId);
       if (response.ok) {
         const data = await response.json();        
         setProgress(data);
@@ -40,13 +40,7 @@ export default function ReadingProgressTracker({
 
   const updateProgress = async (updatedData: Partial<ReadingProgress>) => {
     try {
-      const response = await fetch(`${API_URL}/api/books/${bookId}/progress`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedData),
-      });
+      const response = await api.progress.update(bookId, updatedData);
 
       if (response.ok) {
         const data = await response.json();

@@ -6,7 +6,7 @@ import ReadingProgressTracker from './ReadingProgress';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import { BiPlus, BiSort, BiFilter } from 'react-icons/bi';
-import { API_URL } from '../config/api';
+import { api } from '../services/api';
 
 // Tipos para los filtros y ordenación
 type SortOption = 'last_read' | 'title';
@@ -56,13 +56,23 @@ export default function BookList() {
   const fetchBooks = async () => {
     setIsLoading(true);
     try {
-      // Intentar primero el endpoint con progreso
-      let response = await fetch(`${API_URL}/api/books/with-progress`);
+      // Try the endpoint with progress first
+      let response = await api.books.getAllWithProgress();
       
-      // Si falla, usar el endpoint normal y manejar el progreso por separado
-      if (!response.ok) {
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (Array.isArray(data)) {
+          setBooks(data);
+          return;
+        } else {
+          console.error('API response is not an array:', data);
+          setBooks([]);
+        }
+      } else {
+        // If that fails, use the regular books endpoint and load progress separately
         console.warn('Endpoint with progress failed, falling back to regular books endpoint');
-        response = await fetch(`${API_URL}/api/books/`);
+        response = await api.books.getAll();
         
         if (!response.ok) {
           throw new Error(`Error fetching books: ${response.status}`);
@@ -70,22 +80,24 @@ export default function BookList() {
         
         const booksData = await response.json();
         
-        // Cargar el progreso por separado para cada libro
+        // Load progress separately for each book
         const booksWithProgress = await Promise.all(
           booksData.map(async (book: Book) => {
             try {
-              const progressResponse = await fetch(`${API_URL}/api/books/${book.id}/progress`);
-              if (progressResponse.ok) {
-                const progressData = await progressResponse.json();
-                return {
-                  ...book,
-                  progress: {
-                    last_read_date: progressData.last_read_date,
-                    progress_percentage: progressData.progress_percentage || 0,
-                    audiobook_position: progressData.audiobook_position,
-                    scroll_position: progressData.scroll_position || 0
-                  }
-                };
+              if (book.id) {
+                const progressResponse = await api.progress.get(book.id);
+                if (progressResponse.ok) {
+                  const progressData = await progressResponse.json();
+                  return {
+                    ...book,
+                    progress: {
+                      last_read_date: progressData.last_read_date,
+                      progress_percentage: progressData.progress_percentage || 0,
+                      audiobook_position: progressData.audiobook_position,
+                      scroll_position: progressData.scroll_position || 0
+                    }
+                  };
+                }
               }
               return { ...book, progress: { last_read_date: null, progress_percentage: 0, audiobook_position: null, scroll_position: 0 } };
             } catch (e) {
@@ -95,16 +107,6 @@ export default function BookList() {
         );
         
         setBooks(booksWithProgress);
-        return;
-      }
-      
-      const data = await response.json();
-      
-      if (Array.isArray(data)) {
-        setBooks(data);
-      } else {
-        console.error('API response is not an array:', data);
-        setBooks([]);
       }
     } catch (error) {
       console.error('Error fetching books:', error);
@@ -199,40 +201,37 @@ export default function BookList() {
         formData.append('audiobook_filename', audiobookFile.name);
       }
 
-      // Send request with FormData instead of JSON
-      const response = await fetch(`${API_URL}/api/books/`, {
-        method: 'POST',
-        body: formData,
-        // Don't set Content-Type header - browser will set it with boundary for FormData
-      });
+      const response = await api.books.create(formData);
       
       if (response.ok) {
-        fetchBooks();
         setNewBook({});
         setIsAdding(false);
         setEbookFile(null);
         setAudiobookFile(null);
+        
+        if (ebookInputRef.current) ebookInputRef.current.value = '';
+        if (audiobookInputRef.current) audiobookInputRef.current.value = '';
+        
+        fetchBooks(); // Refresh the book list
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Error adding book');
+        throw new Error('Error adding book');
       }
     } catch (error) {
       console.error('Error adding book:', error);
-      
-      if (error instanceof Error) {
-        alert('Error adding book: ' + error.message);
-      } else {
-        alert('Error adding book: ' + String(error));
-      }
+      alert(error instanceof Error ? error.message : 'Error adding book');
     }
   };
 
   const handleEditBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingId) return;
-
+    if (!editingId) {
+      console.error('No book ID for editing');
+      return;
+    }
+    
     try {
-      const { id, created_at, ...bookData } = newBook;
+      const bookData = { ...newBook };
+      delete bookData.id; // Remove id from update data
       
       // Create FormData to handle both text fields and files
       const formData = new FormData();
@@ -269,11 +268,7 @@ export default function BookList() {
         formData.append('audiobook_filename', audiobookFile.name);
       }
       
-      const response = await fetch(`${API_URL}/api/books/${editingId}`, {
-        method: 'PUT',
-        body: formData,
-        // Don't set Content-Type header - browser will set it with boundary for FormData
-      });
+      const response = await api.books.update(editingId, formData);
       
       if (response.ok) {
         fetchBooks();
@@ -295,9 +290,7 @@ export default function BookList() {
 
   const handleDeleteBook = async (id: number) => {
     try {
-      const response = await fetch(`${API_URL}/api/books/${id}`, {
-        method: 'DELETE',
-      });
+      const response = await api.books.delete(id);
       
       if (response.ok) {
         fetchBooks();

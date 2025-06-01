@@ -4,8 +4,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import styles from "./chat.module.css";
 import NavMenu from '../components/NavMenu';
+import ProtectedRoute from '../components/ProtectedRoute';
 import { BiSend, BiMicrophone, BiStop, BiPlayCircle } from 'react-icons/bi';
-import { API_URL } from '../config/api';
+import { api } from '../services/api';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -15,7 +16,7 @@ interface Message {
   audioContent?: string;
 }
 
-export default function Chat() {
+function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -89,14 +90,10 @@ What would you like to know?`
     setMessages(prev => [...prev, streamingMessage]);
 
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'message.mp3');
-
-      const response = await fetch(`${API_URL}/api/transcribe-audio`, {
-        method: 'POST',
-        body: formData,
-      });
+      // Convert Blob to File
+      const audioFile = new File([audioBlob], 'message.mp3', { type: 'audio/mp3' });
       
+      const response = await api.chat.transcribeAudio(audioFile);
       const data = await response.json();
 
       // Create and play the audio
@@ -157,7 +154,7 @@ What would you like to know?`
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/ask-gemini?question=${encodeURIComponent(input)}`);
+      const response = await api.chat.askGemini(input);
       const data = await response.json();
 
       setMessages(prev => prev.map((msg, index) => {
@@ -298,5 +295,13 @@ What would you like to know?`
         </button>
       </main>
     </div>
+  );
+}
+
+export default function Chat() {
+  return (
+    <ProtectedRoute>
+      <ChatPage />
+    </ProtectedRoute>
   );
 }

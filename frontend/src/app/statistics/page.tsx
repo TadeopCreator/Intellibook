@@ -4,7 +4,8 @@ import { Book } from '../types/Book';
 import { ReadingProgress } from '../types/ReadingProgress';
 import styles from './statistics.module.css';
 import NavMenu from '../components/NavMenu';
-import { API_URL } from '../config/api';
+import ProtectedRoute from '../components/ProtectedRoute';
+import { api } from '../services/api';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line
@@ -26,7 +27,7 @@ interface DailyReadingData {
   minutes: number;
 }
 
-export default function Statistics() {
+function StatisticsPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [bookStats, setBookStats] = useState<BookStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,18 +54,17 @@ export default function Statistics() {
       setIsLoading(true);
       
       // Try to fetch books with progress first
-      let response = await fetch(`${API_URL}/api/books/with-progress`);
+      let response = await api.books.getAllWithProgress();
+      let data;
       
-      // If that fails, fetch regular books
-      if (!response.ok) {
-        response = await fetch(`${API_URL}/api/books/`);
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        // If that fails, fetch regular books
+        const fallbackResponse = await api.books.getAll();
+        data = await fallbackResponse.json();
       }
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch books');
-      }
-      
-      const data = await response.json();
       setBooks(data);
       
       // Calculate statistics
@@ -83,16 +83,16 @@ export default function Statistics() {
     const booksReading = books.filter(book => book.status === 'Reading').length;
     const booksToRead = books.filter(book => book.status === 'To read').length;
     
-    // Calculate reading streak (mock data for now)
-    const readingStreak = 7; // Mock data
+    // Calculate reading streak from actual progress data
+    const readingStreak = calculateReadingStreak(books);
     
-    // Calculate total reading time (mock data for now)
+    // Calculate total reading time from actual progress data
     const totalReadingTime = books.reduce((sum, book) => {
-      // Estimate 2 minutes per page for read books
+      // For read books, estimate 2 minutes per page
       if (book.status === 'Read') {
         return sum + ((book.pages || 0) * 2);
       }
-      // For books in progress, use progress percentage
+      // For books in progress, use actual progress percentage
       if (book.status === 'Reading' && book.progress?.progress_percentage) {
         return sum + ((book.pages || 0) * (book.progress.progress_percentage / 100) * 2);
       }
@@ -107,6 +107,45 @@ export default function Statistics() {
       readingStreak,
       totalReadingTime
     });
+  };
+
+  const calculateReadingStreak = (books: Book[]) => {
+    // Get all progress records with last_read_date
+    const progressDates = books
+      .filter(book => book.progress?.last_read_date)
+      .map(book => new Date(book.progress!.last_read_date!))
+      .sort((a, b) => b.getTime() - a.getTime()); // Sort newest first
+
+    if (progressDates.length === 0) return 0;
+
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check each day going backwards from today
+    for (let i = 0; i < 365; i++) { // Max streak of 365 days
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      
+      // Check if we have any reading activity on this date
+      const hasActivity = progressDates.some(progDate => {
+        const progDateNormalized = new Date(progDate);
+        progDateNormalized.setHours(0, 0, 0, 0);
+        return progDateNormalized.getTime() === checkDate.getTime();
+      });
+      
+      if (hasActivity) {
+        streak++;
+      } else if (i === 0) {
+        // If no activity today, check yesterday
+        continue;
+      } else {
+        // Streak broken
+        break;
+      }
+    }
+    
+    return streak;
   };
 
   const generateMockData = () => {
@@ -375,5 +414,13 @@ export default function Statistics() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Statistics() {
+  return (
+    <ProtectedRoute>
+      <StatisticsPage />
+    </ProtectedRoute>
   );
 } 

@@ -5,7 +5,7 @@ import { IoIosArrowDown } from 'react-icons/io';
 import { FaArrowRotateLeft, FaArrowRotateRight } from "react-icons/fa6";
 import styles from './AudioPlayer.module.css';
 import Modal from './Modal';
-import { API_URL } from '../config/api';
+import { api } from '../services/api';
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -138,14 +138,8 @@ export default function AudioPlayer({
 
   const saveProgress = async (position: number) => {
     try {
-      await fetch(`${API_URL}/api/books/${bookId}/progress`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          audiobook_position: Math.floor(position)
-        }),
+      await api.progress.update(parseInt(bookId), {
+        audiobook_position: Math.floor(position)
       });
     } catch (error) {
       console.error('Error saving progress:', error);

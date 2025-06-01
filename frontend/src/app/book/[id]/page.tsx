@@ -5,12 +5,14 @@ import styles from './bookDetail.module.css';
 import { useRouter } from 'next/navigation';
 import { BiDownload, BiArrowBack, BiBookOpen, BiHeadphone } from 'react-icons/bi';
 import NavMenu from '../../components/NavMenu';
+import ProtectedRoute from '../../components/ProtectedRoute';
 import Link from 'next/link';
 import { useAudio } from '../../context/AudioContext';
+import { api } from '../../services/api';
 import { API_URL } from '../../config/api';
 import { use } from "react";
 
-export default function BookDetail({ params }: { params: Promise<{ id: string }>}) {
+function BookDetailPage({ params }: { params: Promise<{ id: string }>}) {
   const [book, setBook] = useState<Book | null>(null);
   const [audioPosition, setAudioPosition] = useState(0);
   const { showPlayer, isPlayerVisible, currentAudio } = useAudio();
@@ -25,16 +27,7 @@ export default function BookDetail({ params }: { params: Promise<{ id: string }>
   // Modify the function that retrieves progress to avoid cache
   const fetchBookProgress = async (bookId: string) => {
     try {
-      // Add a timestamp parameter to avoid cache
-      const timestamp = new Date().getTime();
-      const response = await fetch(`${API_URL}/api/books/${bookId}/progress?t=${timestamp}`, {
-        cache: 'no-store', // Tell Next.js not to cache this request
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+      const response = await api.progress.get(parseInt(bookId));
       
       if (!response.ok) {
         throw new Error('Error retrieving progress');
@@ -52,7 +45,7 @@ export default function BookDetail({ params }: { params: Promise<{ id: string }>
     const fetchBookAndProgress = async () => {
       try {
         const [bookResponse, progressResponse] = await Promise.all([
-          fetch(`${API_URL}/api/books/${id}`),
+          api.books.getById(parseInt(id)),
           fetchBookProgress(id)
         ]);
         
@@ -92,7 +85,7 @@ export default function BookDetail({ params }: { params: Promise<{ id: string }>
     // Si la URL es de Cloud Storage, obtener URL firmada
     if (audioUrl.includes('storage.cloud.google.com')) {
       try {
-        const response = await fetch(`${API_URL}/api/signed-url/${book.id}`);
+        const response = await api.books.getSignedUrl(book.id!);
         const data = await response.json();
         audioUrl = data.signed_url || data.url;
       } catch (error) {
@@ -156,7 +149,7 @@ export default function BookDetail({ params }: { params: Promise<{ id: string }>
     if (book.ebook_url) {
       window.open(book.ebook_url, '_blank');
     } else if (book.ebook_path) {
-      const fileUrl = `${API_URL}/static/${book.ebook_path}`;
+      const fileUrl = `/api/books/${book.id}/download`;
       window.open(fileUrl, '_blank');
     }
   };
@@ -173,7 +166,7 @@ export default function BookDetail({ params }: { params: Promise<{ id: string }>
     if (book.audiobook_url) {
       window.open(book.audiobook_url, '_blank');
     } else if (book.audiobook_path) {
-      const fileUrl = `${API_URL}/static/${book.audiobook_path}`;
+      const fileUrl = `/api/books/${book.id}/listen`;
       window.open(fileUrl, '_blank');
     }
   };
@@ -332,5 +325,13 @@ export default function BookDetail({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BookDetail({ params }: { params: Promise<{ id: string }>}) {
+  return (
+    <ProtectedRoute>
+      <BookDetailPage params={params} />
+    </ProtectedRoute>
   );
 } 

@@ -8,10 +8,11 @@ import { BiArrowBack, BiSun, BiMoon, BiChevronLeft, BiChevronRight } from 'react
 import { FaTextHeight, FaMinus, FaPlus } from 'react-icons/fa';
 import { Book } from '../../../types/Book';
 import Modal from '../../../components/Modal';
-import { API_URL } from '../../../config/api';
+import ProtectedRoute from '../../../components/ProtectedRoute';
+import { api } from '../../../services/api';
 import { ReadingProgress } from '@/app/types/ReadingProgress';
 
-export default function ReadBook({ params }: { params: Promise<{ id: string }> }) {
+function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
   const [content, setContent] = useState<string>('');
   const [book, setBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -214,9 +215,9 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
       try {
         console.log("Fetching book, content, and progress...");
         const [bookResponse, contentResponse, progressResponse] = await Promise.all([
-          fetch(`${API_URL}/api/books/${id}`),
-          fetch(`${API_URL}/api/books/${id}/content`),
-          fetch(`${API_URL}/api/books/${id}/progress`)
+          api.books.getById(parseInt(id)),
+          api.books.getContent(parseInt(id)),
+          api.progress.get(parseInt(id))
         ]);
 
         if (!isMounted) return;
@@ -260,16 +261,10 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
   const saveProgress = async () => {
     try {
       console.log(`Saving progress: Page ${currentPage}`);
-      const response = await fetch(`${API_URL}/api/books/${id}/progress`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          current_page: currentPage,
-          total_pages: totalPages,
-          scroll_position: 0
-        }),
+      const response = await api.progress.update(parseInt(id), {
+        current_page: currentPage,
+        total_pages: totalPages,
+        scroll_position: 0
       });
 
       if (response.ok) {
@@ -506,5 +501,13 @@ export default function ReadBook({ params }: { params: Promise<{ id: string }> }
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function ReadBook({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <ProtectedRoute>
+      <ReadBookPage params={params} />
+    </ProtectedRoute>
   );
 } 
