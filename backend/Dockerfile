@@ -22,9 +22,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Copy the credentials file (will be overridden by secret mount in production)
-COPY intellibook-credentials.json /app/intellibook-credentials.json
-
 # Expose port
 EXPOSE 8000
 
