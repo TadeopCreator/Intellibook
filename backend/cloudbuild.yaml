@@ -1,6 +1,7 @@
 steps:
   # Build the backend image
   - name: 'gcr.io/cloud-builders/docker'
+    dir: 'backend'
     args: [
       'build',
       '-t', '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${SHORT_SHA}',
