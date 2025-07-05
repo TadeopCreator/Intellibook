@@ -28,4 +28,8 @@ steps:
       '--memory', '1Gi',
       '--cpu', '1',
       '--max-instances', '10'
-    ] 
+    ]
+
+# Logging configuration
+options:
+  logging: CLOUD_LOGGING_ONLY 
