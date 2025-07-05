@@ -298,3 +298,11 @@
     color: #999;
   }
 }
+
+/* Center content properly on large screens */
+@media (min-width: 1200px) {
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}

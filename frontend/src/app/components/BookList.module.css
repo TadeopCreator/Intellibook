@@ -972,9 +972,10 @@
 /* For larger screens, adjust to show more books per row */
 @media (min-width: 1200px) {
   .container {
-    width: calc(100% - 250px);
+    max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
+    width: 100%;
   }
 
   .bookList {

@@ -207,11 +207,15 @@
 /* Ajustar margen solo en pantallas grandes */
 @media (min-width: 1200px) {
   .container {
-    margin-left: 250px;
-    width: calc(100% - 250px);
+    margin-left: 0;
+    width: 100%;
+    background: #111;
   }
   
   .main {
-    padding: 2rem 1rem;
+    padding: 2rem;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
   }
 } 

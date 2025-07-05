@@ -252,7 +252,7 @@
 /* Adjust margin for large screens with expanded nav menu */
 @media (min-width: 1200px) {
   .container {
-    width: calc(100% - 250px);
-    margin-left: 250px;
+    width: 100%;
+    margin-left: 0;
   }
 } 
