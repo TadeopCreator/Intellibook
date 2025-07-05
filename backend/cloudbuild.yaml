@@ -38,6 +38,15 @@ steps:
       '--set-secrets', 'GOOGLE_APPLICATION_CREDENTIALS_JSON=google-application-credentials:latest'
     ]
 
+# Substitution variables for cost optimization
+substitutions:
+  _AR_HOSTNAME: us-central1-docker.pkg.dev
+  _AR_PROJECT_ID: intellibook
+  _AR_REPOSITORY: intellibook-images
+  _SERVICE_NAME: intellibook-backend
+  _PLATFORM: managed
+  _DEPLOY_REGION: us-central1
+
 # Logging configuration
 options:
   logging: CLOUD_LOGGING_ONLY 
