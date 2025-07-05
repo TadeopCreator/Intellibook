@@ -1,9 +1,4 @@
-/* Global fixes for iPhone Chrome overscroll issues */
-body {
-  overscroll-behavior: none;
-  overscroll-behavior-y: none;
-  background: #111;
-}
+/* Global fixes for iPhone Chrome overscroll issues have been moved to globals.css */
 
 /* iOS Safari viewport fixes */
 @supports (-webkit-touch-callout: none) {

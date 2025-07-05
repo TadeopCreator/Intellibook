@@ -30,6 +30,16 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Global fixes for iPhone Chrome overscroll issues */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+}
+
+/* Dark theme override for reading pages */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #111;
+  }
 }
 
 * {
