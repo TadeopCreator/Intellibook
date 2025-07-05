@@ -34,6 +34,29 @@ from auth import get_current_user
 # Load environment variables first, before setting any variables that depend on them
 load_dotenv()
 
+# Create Google Application Credentials file from environment variable if it exists
+def setup_google_credentials():
+    """Create credentials file from environment variable for Cloud Run deployment"""
+    credentials_json = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', '/app/intellibook-credentials.json')
+    
+    if credentials_json and not os.path.exists(credentials_path):
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(credentials_path), exist_ok=True)
+            
+            # Write credentials to file
+            with open(credentials_path, 'w') as f:
+                f.write(credentials_json)
+            
+            logger.info(f"Created Google Application Credentials file at {credentials_path}")
+        except Exception as e:
+            logger.error(f"Failed to create credentials file: {str(e)}")
+    elif os.path.exists(credentials_path):
+        logger.info(f"Google Application Credentials file already exists at {credentials_path}")
+    else:
+        logger.warning("No Google Application Credentials found in environment variables")
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,  # Set to DEBUG to show all messages
@@ -45,6 +68,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Explicitly set logger level
+
+# Setup Google credentials from environment variable
+setup_google_credentials()
 
 # Now set DEBUG_MODE after environment variables are loaded
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'True').lower() == 'true'
