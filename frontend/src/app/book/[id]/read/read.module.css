@@ -103,7 +103,6 @@
 /* Ajustes de legibilidad para modo oscuro */
 .dark {
   line-height: 1.7;
-  font-size: 1.1rem;
 }
 
 .dark h1,
@@ -125,10 +124,6 @@
     top: 0.5rem;
     right: 0.5rem;
     padding: 0.5rem;
-    font-size: 1rem;
-  }
-
-  .dark {
     font-size: 1rem;
   }
 }

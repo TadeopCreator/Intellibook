@@ -30,11 +30,26 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
   const [pagesContent, setPagesContent] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [showMobileHint, setShowMobileHint] = useState(false);
 
   // Constants for pagination
   const WORDS_PER_PAGE = 150; // Reduced from 250 to 150 words per page
   const MIN_LINES_PER_PAGE = 8; // Reduced from 12 to 8 lines
   const MAX_LINES_PER_PAGE = 18; // Reduced from 25 to 18 lines
+
+  // State to prevent double firing of events
+  const [lastInteraction, setLastInteraction] = useState<number>(0);
+  
+  // Touch gesture tracking
+  const [touchStart, setTouchStart] = useState<{
+    x: number;
+    y: number;
+    time: number;
+  } | null>(null);
+
+  // Constants for touch gesture detection
+  const MAX_TAP_DURATION = 300; // milliseconds
+  const MAX_TAP_MOVEMENT = 10; // pixels
 
   // Improved function to split content into pages
   const splitContentIntoPages = useCallback((text: string) => {
@@ -200,9 +215,20 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
   useEffect(() => {
     const savedTheme = localStorage.getItem('viewerTheme') || 'dark';
     const savedFontSize = localStorage.getItem('viewerFontSize');
+    const hasSeenMobileHint = localStorage.getItem('hasSeenMobileHint');
     
     setViewerTheme(savedTheme as 'light' | 'dark');
     if (savedFontSize) setFontSize(parseInt(savedFontSize));
+    
+    // Show mobile hint if on mobile and haven't seen it before
+    if (window.innerWidth <= 768 && !hasSeenMobileHint) {
+      setShowMobileHint(true);
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        setShowMobileHint(false);
+        localStorage.setItem('hasSeenMobileHint', 'true');
+      }, 3000);
+    }
   }, []);
 
   // Load initial data
@@ -283,14 +309,40 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
 
   const goToNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1);
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      // Auto-save progress when page changes
+      saveProgressSilently(newPage);
     }
   };
 
   const goToPreviousPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      // Auto-save progress when page changes
+      saveProgressSilently(newPage);
     }
+  };
+
+  // Silent progress saving (doesn't redirect)
+  const saveProgressSilently = async (pageToSave: number) => {
+    try {
+      await api.progress.update(parseInt(id), {
+        current_page: pageToSave,
+        total_pages: totalPages,
+        scroll_position: 0
+      });
+    } catch (error) {
+      console.error('Error auto-saving progress:', error);
+      // Don't show error for auto-save, just log it
+    }
+  };
+
+  // Calculate reading percentage
+  const getReadingPercentage = () => {
+    if (totalPages === 0) return 0;
+    return Math.round((currentPage / totalPages) * 100);
   };
 
   const toggleViewerTheme = () => {
@@ -313,6 +365,104 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
 
   const toggleFontControls = () => {
     setShowFontControls(!showFontControls);
+  };
+
+  // Unified navigation handler
+  const handleNavigation = (clientX: number, elementRect: DOMRect) => {
+    // Prevent rapid double-firing (within 100ms)
+    const now = Date.now();
+    if (now - lastInteraction < 100) return;
+    setLastInteraction(now);
+
+    // Hide mobile hint on first interaction
+    if (showMobileHint) {
+      setShowMobileHint(false);
+      localStorage.setItem('hasSeenMobileHint', 'true');
+    }
+    
+    // Only apply on mobile devices
+    if (window.innerWidth > 768) return;
+    
+    const clickX = clientX - elementRect.left;
+    const contentWidth = elementRect.width;
+    const halfWidth = contentWidth / 2;
+    
+    if (clickX < halfWidth) {
+      // Left half - go to previous page
+      goToPreviousPage();
+    } else {
+      // Right half - go to next page
+      goToNextPage();
+    }
+  };
+
+  // Add mobile tap navigation handler
+  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only handle if this is not a touch device or if touch events aren't supported
+    if ('ontouchstart' in window) return;
+    
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    handleNavigation(e.clientX, rect);
+  };
+
+  // Add touch handler for better mobile support
+  const handleContentTouch = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    const touch = e.changedTouches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    handleNavigation(touch.clientX, rect);
+  };
+
+  // Handle touch start - track initial touch position and time
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    // Don't prevent default here - allow normal scrolling
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    
+    setTouchStart({
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+      time: Date.now()
+    });
+  };
+
+  // Handle touch end - check if it was a tap or scroll
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStart) return;
+    
+    const touch = e.changedTouches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    const endX = touch.clientX - rect.left;
+    const endY = touch.clientY - rect.top;
+    const duration = Date.now() - touchStart.time;
+    
+    // Calculate movement distance
+    const deltaX = Math.abs(endX - touchStart.x);
+    const deltaY = Math.abs(endY - touchStart.y);
+    const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // Only trigger navigation if:
+    // 1. Touch duration is short (like a tap)
+    // 2. Movement is minimal (not a scroll gesture)
+    // 3. Only on mobile devices
+    if (duration <= MAX_TAP_DURATION && 
+        totalMovement <= MAX_TAP_MOVEMENT && 
+        window.innerWidth <= 768) {
+      
+      // Prevent the default action only for navigation taps
+      e.preventDefault();
+      handleNavigation(touchStart.x + rect.left, rect);
+    }
+    
+    // Reset touch start
+    setTouchStart(null);
+  };
+
+  // Add touch cancel handler to reset state
+  const handleTouchCancel = () => {
+    setTouchStart(null);
   };
 
   if (isLoading) {
@@ -369,6 +519,22 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
                 <span className={styles.bookReader}>
                    Reading
                 </span>
+              </div>
+            </div>
+          )}
+
+          {/* Reading Progress Indicator */}
+          {totalPages > 0 && (
+            <div className={styles.progressIndicator}>
+              <div className={styles.progressText}>
+                <span className={styles.progressPercentage}>{getReadingPercentage()}%</span>
+                <span className={styles.progressPages}>Page {currentPage} of {totalPages}</span>
+              </div>
+              <div className={styles.progressBarHeader}>
+                <div 
+                  className={styles.progressFillHeader} 
+                  style={{ width: `${getReadingPercentage()}%` }}
+                />
               </div>
             </div>
           )}
@@ -437,6 +603,10 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
               textAlign: 'justify',
             }}
             aria-live="polite"
+            onClick={handleContentClick}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
           >
             {pagesContent.length > 0 ? (
               <div 
@@ -459,6 +629,22 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
               <div className={`${styles.noContent} ${readModuleStyles[viewerTheme]}`}>No content available</div>
             )}
           </div>
+          
+          {/* Mobile navigation hint */}
+          {showMobileHint && (
+            <div className={styles.mobileHint}>
+              <div className={styles.hintContent}>
+                <div className={styles.hintLeft}>
+                  <BiChevronLeft size={24} />
+                  <span>Tap left to go back</span>
+                </div>
+                <div className={styles.hintRight}>
+                  <span>Tap right to go forward</span>
+                  <BiChevronRight size={24} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <button
@@ -469,6 +655,20 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
         >
           <BiChevronRight size={40} />
         </button>
+      </div>
+
+      {/* Page counter for mobile */}
+      <div className={styles.pageCounter}>
+        <div className={styles.pageCounterText}>
+          <span className={styles.pageInfo}>Page {currentPage} of {totalPages}</span>
+          <span className={styles.percentageInfo}>{getReadingPercentage()}% complete</span>
+        </div>
+        <div className={styles.progressBarContainer}>
+          <div 
+            className={styles.progressBar} 
+            style={{ width: `${(currentPage / totalPages) * 100}%` }}
+          />
+        </div>
       </div>
 
       <Modal

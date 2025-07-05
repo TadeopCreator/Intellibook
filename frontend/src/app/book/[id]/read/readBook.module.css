@@ -1,9 +1,82 @@
+/* Global fixes for iPhone Chrome overscroll issues */
+body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  background: #111;
+}
+
+/* iOS Safari viewport fixes */
+@supports (-webkit-touch-callout: none) {
+  .container {
+    min-height: -webkit-fill-available;
+  }
+  
+  .paginatedContent {
+    /* Fix for iOS Safari text clipping */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+}
+
+/* Prevent text selection and zoom on iOS */
+@media (max-width: 768px) {
+  .paginatedContent {
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Allow vertical scrolling but prevent zoom on double tap */
+    touch-action: pan-y;
+  }
+}
+
+/* Mobile browser viewport fixes */
+@media (max-width: 768px) {
+  .container {
+    /* Use viewport units that work better in Chrome mobile */
+    min-height: 100dvh; /* Dynamic viewport height */
+    min-height: 100vh; /* Fallback */
+    /* Fix iPhone Chrome overscroll issues */
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    /* Ensure background covers any overscroll */
+    background: #111 !important;
+    /* iOS Safari compatibility */
+    min-height: -webkit-fill-available;
+  }
+  
+  .paginatedContent {
+    /* Prevent text selection and improve touch behavior */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Allow vertical scrolling but prevent zoom on double tap */
+    touch-action: pan-y;
+    /* Better hardware acceleration for all mobile browsers */
+    will-change: transform;
+    /* Fix overscroll behavior */
+    overscroll-behavior: contain;
+  }
+}
+
+/* Fix for iPhone Chrome overscroll black background */
 .container {
+  /* Prevent overscroll bounce effect */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  /* Ensure background covers any overscroll */
+  background: #111;
+  /* Use proper viewport height for iOS Chrome */
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height */
+  min-height: -webkit-fill-available; /* iOS Safari fallback */
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
   padding: 1rem;
-  background: #111;
+  overflow: hidden;
+  /* Ensure container takes full height and distributes space properly */
+  height: 100vh;
 }
 
 .header {
@@ -107,33 +180,45 @@
   margin: 0 auto;
   padding: 0 80px;
   position: relative;
+  /* Ensure it can shrink when needed */
+  min-height: 0;
 }
 
 .content {
   flex: 1;
   padding: 2rem;
   width: 100%;
-  height: 100%;
   overflow-y: auto;
   transition: all 0.3s ease;
+  /* Remove fixed height to work with flex */
+  min-height: 0;
 }
 
 .paginatedContent {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-height: 320px;
-  height: 400px;
+  /* Use flex instead of fixed height */
+  flex: 1;
+  min-height: 400px;
   overflow-y: auto;
-  padding: 2rem;
+  padding: 1.5rem;
   transition: background 0.3s ease, color 0.3s ease;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 
 .paginatedContent > div {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .paginatedContent p {
@@ -219,6 +304,12 @@
 @media (max-width: 768px) {
   .container {
     padding: 0.5rem;
+    /* Chrome mobile viewport handling */
+    min-height: 100dvh;
+    min-height: 100vh;
+    /* Ensure container is flex and takes full height */
+    display: flex;
+    flex-direction: column;
   }
 
   .content {
@@ -227,30 +318,115 @@
     line-height: 1.5;
   }
 
-  .paginatedContent {
-    min-height: 350px;
-    height: 450px;
-    padding: 1.5rem;
-  }
-
   .contentWrapper {
-    padding: 0 65px;
+    padding: 0;
+    /* Make this flex and take remaining space */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* Ensure it has a minimum height but can grow */
+    min-height: 0;
   }
 
+  .paginatedContent {
+    /* Let content take available space in the wrapper */
+    flex: 1;
+    min-height: 400px; /* Reasonable minimum */
+    max-height: none; /* Remove max-height constraint */
+    padding: 1.5rem;
+    cursor: pointer;
+    position: relative;
+    border-left: 2px solid transparent;
+    border-right: 2px solid transparent;
+    transition: border-color 0.2s ease;
+    /* Ensure text doesn't get cut off */
+    overflow-y: auto;
+    /* Better scrolling for Chrome mobile */
+    overscroll-behavior: contain;
+    /* Fix for content clipping in Chrome mobile */
+    box-sizing: border-box;
+  }
+
+  /* Hide navigation arrows on mobile */
   .pageNavButton {
-    height: 60px;
-    width: 60px;
-    padding: 0.8rem;
+    display: none;
   }
 
-  .pageNavButton svg {
-    font-size: 1.8rem;
+  /* Add visual feedback for tap zones on mobile */
+  .paginatedContent::before,
+  .paginatedContent::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    pointer-events: none;
+    transition: background-color 0.2s ease;
+    z-index: 1;
+    opacity: 0;
+  }
+
+  .paginatedContent::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(255, 140, 0, 0.05), transparent);
+  }
+
+  .paginatedContent::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(255, 140, 0, 0.05), transparent);
+  }
+
+  /* Show tap zones on hover */
+  .paginatedContent:hover::before,
+  .paginatedContent:hover::after {
+    opacity: 1;
+  }
+
+  .paginatedContent:hover {
+    border-left-color: rgba(255, 140, 0, 0.2);
+    border-right-color: rgba(255, 140, 0, 0.2);
+  }
+
+  /* Ensure content text is above tap zones */
+  .paginatedContent > div {
+    position: relative;
+    z-index: 2;
+    /* Let content fill the available space */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  /* Active state for tap zones */
+  .paginatedContent:active::before {
+    background-color: rgba(255, 140, 0, 0.15);
+    opacity: 1;
+  }
+
+  .paginatedContent:active::after {
+    background-color: rgba(255, 140, 0, 0.15);
+    opacity: 1;
   }
 }
 
 @media (max-width: 480px) {
   .container {
     padding: 0.3rem;
+    /* Chrome mobile viewport for smaller screens */
+    min-height: 100dvh;
+    min-height: 100vh;
+    /* Ensure proper flex layout */
+    display: flex;
+    flex-direction: column;
+    /* Fix iPhone Chrome overscroll issues */
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    /* Ensure background covers any overscroll */
+    background: #111 !important;
+    /* iOS Safari compatibility */
+    min-height: -webkit-fill-available;
   }
 
   .content {
@@ -258,33 +434,30 @@
     font-size: 0.95rem;
   }
 
-  .paginatedContent {
-    min-height: 300px;
-    height: 400px;
-    padding: 1rem;
-  }
-
   .contentWrapper {
-    padding: 0 55px;
+    padding: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
   }
 
+  .paginatedContent {
+    /* Let content take available space with smaller minimum */
+    flex: 1;
+    min-height: 350px;
+    max-height: none;
+    padding: 1rem;
+    /* Chrome mobile scrolling improvements */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+  }
+
+  /* Hide navigation arrows on mobile */
   .pageNavButton {
-    height: 50px;
-    width: 50px;
-    padding: 0.6rem;
-    top: 35%;
-  }
-
-  .pageNavButton:first-child {
-    left: -5px;
-  }
-
-  .pageNavButton:last-child {
-    right: -5px;
-  }
-
-  .pageNavButton svg {
-    font-size: 1.6rem;
+    display: none;
   }
 }
 
@@ -402,12 +575,12 @@
 /* Mostrar sidebar en pantallas grandes */
 @media (min-width: 1200px) {
   .container {
-    width: calc(100% - 250px);
-    margin-left: 250px;
+    width: 100%;
+    margin-left: 0;
   }
 
   .progressBar {
-    left: 250px;
+    left: 0;
   }
 }
 
@@ -627,4 +800,152 @@
   background: #eee;
   color: #333;
   border-color: #ddd;
+}
+
+/* Mobile navigation hint styles */
+.mobileHint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.hintContent {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 2rem;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.hintLeft,
+.hintRight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 140, 0, 0.9);
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+}
+
+.hintLeft {
+  flex-direction: row;
+}
+
+.hintRight {
+  flex-direction: row-reverse;
+}
+
+/* Page counter styles */
+.pageCounter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem 2rem;
+  color: #e6e6e6;
+  font-size: 0.9rem;
+}
+
+.pageCounterText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pageInfo {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.percentageInfo {
+  font-size: 0.8rem;
+  color: #ff8c00;
+  font-weight: 600;
+}
+
+/* Hide page counter on desktop (where nav buttons are visible) */
+@media (min-width: 769px) {
+  .pageCounter {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .hintContent {
+    padding: 0 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .hintLeft,
+  .hintRight {
+    padding: 0.6rem 1rem;
+    gap: 0.3rem;
+  }
+}
+
+/* Progress indicator in header */
+.progressIndicator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 1.5rem;
+  min-width: 200px;
+}
+
+.progressText {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #e6e6e6;
+}
+
+.progressPercentage {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #ff8c00;
+}
+
+.progressPages {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.progressBarHeader {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFillHeader {
+  height: 100%;
+  background: linear-gradient(90deg, #ff8c00, #ffb74d);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Responsive adjustments for progress indicator */
+@media (max-width: 768px) {
+  .progressIndicator {
+    display: none; /* Hide in header on mobile since we have the bottom indicator */
+  }
+}
+
+@media (max-width: 480px) {
+  .progressIndicator {
+    display: none;
+  }
 }
