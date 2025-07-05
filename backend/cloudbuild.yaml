@@ -30,7 +30,6 @@ steps:
       '--set-env-vars', 'DB_USER=${_DB_USER}',
       '--set-env-vars', 'DB_NAME=${_DB_NAME}',
       '--set-env-vars', 'GOOGLE_APPLICATION_CREDENTIALS=/app/intellibook-credentials.json',
-      '--set-env-vars', 'PORT=8000',
       '--set-env-vars', 'ALLOWED_EMAIL=${_ALLOWED_EMAIL}',
       '--set-env-vars', 'FRONTEND_URL=${_FRONTEND_URL}',
       '--set-secrets', 'GOOGLE_API_KEY=google-api-key:latest',
