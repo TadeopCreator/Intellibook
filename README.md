@@ -1,111 +1,136 @@
-# Intellibook
+# 📚 Intellibook
 
-Intellibook is a book and audiobook management application that allows you to organize your personal library, track your reading and listening progress, and enjoy your books in one place.
+> Your intelligent assistant for reading and audiobooks
 
-## Features
+Intellibook is a comprehensive book and audiobook management application that combines a powerful library organizer, an AI-powered reading assistant, and a feature-rich ebook reader. Built with modern technologies and deployed on Google Cloud Platform, it provides a seamless reading experience across all your devices.
 
-- **Digital Library**: Organize and manage your collection of books and audiobooks
-- **Integrated Reader**: Read your ebooks directly in the application 
-- **Audio Player**: Listen to your audiobooks with a custom player
-- **Progress Tracking**: Keep track of your progress in each book
-- **Book Search**: Find and add new books to your library
-- **Reading Assistant**: Chat with an AI assistant specialized in literature
-- **Responsive Design**: Works on mobile and desktop devices
+![Intellibook Homepage](docs/images/homepage-dashboard.png)
 
-## Technologies
+## ✨ Features
+
+### 📖 **Digital Library Management**
+- **Organize & Manage**: Add, edit, and organize your complete collection of books and audiobooks
+- **Multiple Formats**: Support for PDF, EPUB, and various audiobook formats
+- **Book Information**: Store detailed metadata including cover images, descriptions, publication info
+- **Status Tracking**: Track books as "To Read", "Reading", or "Read"
+- **Smart Search**: Find and add new books to your library
+
+![Library Management](docs/images/library-with-books.png)
+
+### 📱 **Integrated Ebook Reader**
+- **Pagination System**: Smart page splitting optimized for readability
+- **Theme Options**: Light and dark reading modes
+- **Font Controls**: Adjustable font size and content width
+- **Mobile Navigation**: Touch-friendly page navigation on mobile devices
+- **Progress Tracking**: Automatic bookmark saving and progress restoration
+
+![Reading Interface](docs/images/reading-interface.png)
+
+### 🤖 **AI Reading Assistant - "Dorian"**
+- **Literature Expert**: Specialized AI assistant powered by Google Gemini 2.0 Flash
+- **Personal Library Integration**: Answers questions about your specific book collection
+- **Reading Recommendations**: Get personalized book suggestions
+- **Literary Analysis**: Discuss themes, characters, and literary techniques
+- **Multi-language Support**: Responds in the same language as your questions
+
+![AI Chat Interface](docs/images/ai-chat-interface.png)
+
+### 📊 **Reading Analytics & Statistics**
+- **Progress Tracking**: Visual charts of your reading journey
+- **Reading Streaks**: Monitor your reading consistency
+- **Book Statistics**: Overview of books read, in progress, and planned
+- **Time Analytics**: Track daily and weekly reading time
+
+![Reading Statistics](docs/images/reading-statistics.png)
+
+### 🎧 **Audiobook Player**
+- **Integrated Player**: Built-in audiobook player with resume functionality
+- **Progress Sync**: Sync listening progress across devices
+- **Cloud Storage**: Secure audiobook storage in Google Cloud
+
+### 🔐 **Secure Authentication**
+- **Google OAuth 2.0**: Secure sign-in with your Google account
+- **Access Control**: Restricted access with configurable user permissions
+
+## 🛠 Technology Stack
 
 ### Frontend
-- Next.js
-- React
-- TypeScript
-- CSS Modules
+- **Framework**: Next.js 14 with TypeScript
+- **Styling**: CSS Modules with responsive design
+- **Charts**: Recharts for data visualization
+- **Authentication**: Google OAuth 2.0
+- **State Management**: React Context API
 
 ### Backend
-- FastAPI
-- SQLModel
-- SQLite
-- Google Cloud (Text-to-Speech, Gemini AI)
+- **Framework**: FastAPI (Python 3.11)
+- **Database**: SQLite (development), Cloud SQL MySQL (production)
+- **ORM**: SQLModel
+- **AI Integration**: Google Gemini 2.0 Flash
+- **Text-to-Speech**: Google Cloud Text-to-Speech
+- **Authentication**: Google OAuth 2.0
 
-## Installation
+### Google Cloud Platform
+- **Compute**: Cloud Run for serverless deployment
+- **Storage**: Cloud Storage and Cloud SQL
+- **Security**: Secret Manager
+- **CI/CD**: Cloud Build with Artifact Registry
+- **AI**: Gemini AI and Text-to-Speech APIs
 
-### Prerequisites
-- Node.js (v16 or higher)
-- Python (v3.9 or higher)
-- pip
-- npm or yarn
+## 📋 Prerequisites
 
-### Backend Setup
+- **Node.js** (v18 or higher)
+- **Python** (v3.11 or higher)
+- **Google Cloud Account** (for production deployment)
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/intellibook.git
-   ```
+## 🔧 Installation & Setup
 
-2. Set up Python virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+### Local Development
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+#### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/intellibook.git
+cd intellibook
+```
 
-4. Create a `.env` file in the backend folder with the following variables:
-   ```
-   GOOGLE_API_KEY=your_google_api_key
-   ```
+#### 2. Backend Setup
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-5. Create necessary folders to store files:
-   ```bash
-   mkdir -p books_storage/audiobooks
-   ```
+Create `.env` file:
+```env
+DEBUG_MODE=True
+GOOGLE_API_KEY=your_google_api_key
+GOOGLE_CLIENT_ID=your_google_client_id
+FRONTEND_URL=http://localhost:3000
+```
 
-6. Start the server:
-   ```bash
-   python main.py
-   ```
+#### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+```
 
-The server will be available at http://localhost:8000.
+Create `.env.local` file:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+```
 
-### Frontend Setup
+#### 4. Start Development Servers
+```bash
+# Backend
+cd backend && python main.py
 
-1. Navigate to the frontend folder:
-   ```bash
-   cd frontend
-   ```
+# Frontend (in another terminal)
+cd frontend && npm run dev
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Access the application at `http://localhost:3000`
 
-3. Create a `.env.local` file with the backend URL:
-   ```
-   NEXT_PUBLIC_API_URL=http://localhost:8000
-   ```
+---
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-The frontend will be available at http://localhost:3000.
-
-## Usage
-
-1. Open your browser and go to http://localhost:3000
-2. Navigate to the "Library" section to view your books
-3. Use the "Search Books" button to add new titles
-4. Click on a book to see its details and reading/listening options
-5. Use the "Chat" to talk with the assistant about literature
-
-## Mobile Access
-
-To access from mobile devices on the same network:
-
-1. Find your computer's IP on the local network
-2. Edit the `frontend/src/app/config/api.ts` file to use that IP
-3. Edit the `backend/main.py` file to allow connections from that IP
-4. Access from your mobile device using `http://YOUR-COMPUTER-IP:3000`
+**Created with ❤️ by Tadeo Deluca**
