@@ -2,91 +2,91 @@
 
 > Your intelligent assistant for reading and audiobooks
 
-Intellibook is a comprehensive book and audiobook management application that combines a powerful library organizer, an AI-powered reading assistant, and a feature-rich ebook reader. Built with modern technologies and deployed on Google Cloud Platform, it provides a seamless reading experience across all your devices.
+Intellibook is a book and audiobook management application with an AI-powered reading assistant and integrated ebook reader. Built with Next.js, FastAPI, and deployed on Google Cloud Platform.
 
 ![Intellibook Homepage](docs/images/homepage-dashboard.png)
 
 ## ✨ Features
 
 ### 📖 **Digital Library Management**
-- **Organize & Manage**: Add, edit, and organize your complete collection of books and audiobooks
-- **Multiple Formats**: Support for PDF, EPUB, and various audiobook formats
-- **Book Information**: Store detailed metadata including cover images, descriptions, publication info
-- **Status Tracking**: Track books as "To Read", "Reading", or "Read"
-- **Smart Search**: Find and add new books to your library
+- Add, edit, and organize your books and audiobooks
+- Support for PDF, EPUB, and audiobook formats
+- Store metadata including cover images, descriptions, publication info
+- Track books as "To Read", "Reading", or "Read"
+- Search and add new books to your library
 
 ![Library Management](docs/images/library-with-books.png)
 
 ### 📱 **Integrated Ebook Reader**
-- **Pagination System**: Smart page splitting optimized for readability
-- **Theme Options**: Light and dark reading modes
-- **Font Controls**: Adjustable font size and content width
-- **Mobile Navigation**: Touch-friendly page navigation on mobile devices
-- **Progress Tracking**: Automatic bookmark saving and progress restoration
+- Page splitting optimized for readability
+- Light and dark reading modes
+- Adjustable font size and content width
+- Touch navigation on mobile devices
+- Automatic bookmark saving and progress restoration
 
 ![Reading Interface](docs/images/reading-interface.png)
 
 ### 🤖 **AI Reading Assistant - "Dorian"**
-- **Literature Expert**: Specialized AI assistant powered by Google Gemini 2.0 Flash
-- **Personal Library Integration**: Answers questions about your specific book collection
-- **Reading Recommendations**: Get personalized book suggestions
-- **Literary Analysis**: Discuss themes, characters, and literary techniques
-- **Multi-language Support**: Responds in the same language as your questions
+- AI assistant powered by Google Gemini 2.0 Flash
+- Answers questions about your book collection
+- Get book recommendations
+- Discuss themes, characters, and literary techniques
+- Multi-language support
 
 ![AI Chat Interface](docs/images/ai-chat-interface.png)
 
 ### 📊 **Reading Analytics & Statistics**
-- **Progress Tracking**: Visual charts of your reading journey
-- **Reading Streaks**: Monitor your reading consistency
-- **Book Statistics**: Overview of books read, in progress, and planned
-- **Time Analytics**: Track daily and weekly reading time
+- Visual charts of your reading progress
+- Monitor reading consistency
+- Overview of books read, in progress, and planned
+- Track daily and weekly reading time
 
 ![Reading Statistics](docs/images/reading-statistics.png)
 
 ### 🎧 **Audiobook Player**
-- **Integrated Player**: Built-in audiobook player with resume functionality
-- **Progress Sync**: Sync listening progress across devices
-- **Cloud Storage**: Secure audiobook storage in Google Cloud
+- Built-in audiobook player with resume functionality
+- Sync listening progress across devices
+- Cloud storage for audiobooks
 
-### 🔐 **Secure Authentication**
-- **Google OAuth 2.0**: Secure sign-in with your Google account
-- **Access Control**: Restricted access with configurable user permissions
+### 🔐 **Authentication**
+- Google OAuth 2.0 sign-in
+- Access control with user permissions
 
 ## 🛠 Technology Stack
 
 ### Frontend
-- **Framework**: Next.js 14 with TypeScript
-- **Styling**: CSS Modules with responsive design
-- **Charts**: Recharts for data visualization
-- **Authentication**: Google OAuth 2.0
-- **State Management**: React Context API
+- Next.js 14 with TypeScript
+- CSS Modules
+- Recharts for data visualization
+- Google OAuth 2.0
+- React Context API
 
 ### Backend
-- **Framework**: FastAPI (Python 3.11)
-- **Database**: SQLite (development), Cloud SQL MySQL (production)
-- **ORM**: SQLModel
-- **AI Integration**: Google Gemini 2.0 Flash
-- **Text-to-Speech**: Google Cloud Text-to-Speech
-- **Authentication**: Google OAuth 2.0
+- FastAPI (Python 3.11)
+- SQLite (development), Cloud SQL MySQL (production)
+- SQLModel
+- Google Gemini 2.0 Flash
+- Google Cloud Text-to-Speech
+- Google OAuth 2.0
 
 ### Google Cloud Platform
-- **Compute**: Cloud Run for serverless deployment
-- **Storage**: Cloud Storage and Cloud SQL
-- **Security**: Secret Manager
-- **CI/CD**: Cloud Build with Artifact Registry
-- **AI**: Gemini AI and Text-to-Speech APIs
+- Cloud Run for deployment
+- Cloud Storage and Cloud SQL
+- Secret Manager
+- Cloud Build with Artifact Registry
+- Gemini AI and Text-to-Speech APIs
 
 ## 📋 Prerequisites
 
-- **Node.js** (v18 or higher)
-- **Python** (v3.11 or higher)
-- **Google Cloud Account** (for production deployment)
+- Node.js (v18 or higher)
+- Python (v3.11 or higher)
+- Google Cloud Account (for production)
 
-## 🔧 Installation & Setup
+## 🔧 Installation
 
 ### Local Development
 
-#### 1. Clone the Repository
+#### 1. Clone Repository
 ```bash
 git clone https://github.com/yourusername/intellibook.git
 cd intellibook
@@ -120,7 +120,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
-#### 4. Start Development Servers
+#### 4. Start Servers
 ```bash
 # Backend
 cd backend && python main.py
@@ -129,8 +129,8 @@ cd backend && python main.py
 cd frontend && npm run dev
 ```
 
-Access the application at `http://localhost:3000`
+Access at `http://localhost:3000`
 
 ---
 
-**Created with ❤️ by Tadeo Deluca**
+**Created by Tadeo Deluca**
