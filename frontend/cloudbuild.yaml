@@ -30,15 +30,6 @@ steps:
       '--max-instances', '10'
     ]
 
-# Substitution variables for cost optimization
-substitutions:
-  _AR_HOSTNAME: us-central1-docker.pkg.dev
-  _AR_PROJECT_ID: intellibook
-  _AR_REPOSITORY: intellibook-images
-  _SERVICE_NAME: intellibook-frontend
-  _PLATFORM: managed
-  _DEPLOY_REGION: southamerica-east1
-
 # Logging configuration
 options:
   logging: CLOUD_LOGGING_ONLY 
