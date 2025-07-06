@@ -27,7 +27,7 @@
 /* Mobile browser viewport fixes */
 @media (max-width: 768px) {
   .container {
-    /* Use viewport units that work better in Chrome mobile */
+    /* Use minimum height instead of fixed height to allow expansion */
     min-height: 100dvh; /* Dynamic viewport height */
     min-height: 100vh; /* Fallback */
     /* Fix iPhone Chrome overscroll issues */
@@ -37,6 +37,8 @@
     background: #111 !important;
     /* iOS Safari compatibility */
     min-height: -webkit-fill-available;
+    /* Allow overflow when content is too large */
+    overflow: visible;
   }
   
   .paginatedContent {
@@ -50,6 +52,9 @@
     touch-action: pan-y;
     /* Better hardware acceleration for all mobile browsers */
     will-change: transform;
+    /* Allow vertical scrolling when content overflows */
+    overflow-y: auto;
+    overflow-x: hidden;
     /* Fix overscroll behavior */
     overscroll-behavior: contain;
   }
@@ -62,16 +67,17 @@
   overscroll-behavior-y: none;
   /* Ensure background covers any overscroll */
   background: #111;
-  /* Use proper viewport height for iOS Chrome */
+  /* Use minimum height instead of fixed height to allow expansion */
   min-height: 100vh;
   min-height: 100dvh; /* Dynamic viewport height */
   min-height: -webkit-fill-available; /* iOS Safari fallback */
   display: flex;
   flex-direction: column;
   padding: 1rem;
-  overflow: hidden;
-  /* Ensure container takes full height and distributes space properly */
-  height: 100vh;
+  /* Allow container to overflow when content is too large */
+  overflow: visible;
+  /* Remove fixed height constraint to allow expansion */
+  /* height: 100vh; - REMOVED */
 }
 
 .header {
@@ -165,18 +171,16 @@
 }
 
 .contentWrapper {
+  padding: 0;
+  /* Make this flex and allow expansion */
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 80px;
-  position: relative;
-  /* Ensure it can shrink when needed */
+  justify-content: flex-start;
+  /* Ensure it can expand when content is large */
   min-height: 0;
+  /* Remove height constraints to allow expansion */
+  height: auto;
 }
 
 .content {
@@ -185,17 +189,22 @@
   width: 100%;
   overflow-y: auto;
   transition: all 0.3s ease;
-  /* Remove fixed height to work with flex */
+  /* Allow content to expand vertically */
   min-height: 0;
+  /* Remove height constraints */
+  height: auto;
 }
 
 .paginatedContent {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  /* Use flex instead of fixed height */
+  /* Use flex and allow expansion */
   flex: 1;
   min-height: 400px;
+  /* Allow vertical scrolling when content overflows */
   overflow-y: auto;
+  /* Allow horizontal overflow if needed */
+  overflow-x: hidden;
   padding: 1.5rem;
   transition: background 0.3s ease, color 0.3s ease;
   display: flex;
@@ -206,14 +215,28 @@
   border-right: 2px solid transparent;
   transition: border-color 0.2s ease;
   box-sizing: border-box;
+  /* Ensure content can expand vertically */
+  max-height: none;
+  /* Allow content to expand vertically */
+  height: auto;
 }
 
 .paginatedContent > div {
   display: flex;
   flex-direction: column;
-  height: 100%;
   position: relative;
   z-index: 2;
+  /* Let content fill the available space */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  /* Allow content to expand vertically */
+  min-height: 100%;
+  /* Remove height constraints and allow expansion */
+  height: auto;
+  flex: 1;
+  /* Allow vertical overflow when needed */
+  overflow-y: visible;
 }
 
 .paginatedContent p {
@@ -299,12 +322,14 @@
 @media (max-width: 768px) {
   .container {
     padding: 0.5rem;
-    /* Chrome mobile viewport handling */
+    /* Chrome mobile viewport handling - use minimum height */
     min-height: 100dvh;
     min-height: 100vh;
     /* Ensure container is flex and takes full height */
     display: flex;
     flex-direction: column;
+    /* Allow overflow when content is too large */
+    overflow: visible;
   }
 
   .content {
@@ -315,13 +340,13 @@
 
   .contentWrapper {
     padding: 0;
-    /* Make this flex and take remaining space */
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    /* Ensure it has a minimum height but can grow */
+    justify-content: flex-start;
     min-height: 0;
+    /* Remove height constraints to allow expansion */
+    height: auto;
   }
 
   .paginatedContent {
@@ -335,12 +360,15 @@
     border-left: 2px solid transparent;
     border-right: 2px solid transparent;
     transition: border-color 0.2s ease;
-    /* Ensure text doesn't get cut off */
+    /* Ensure text doesn't get cut off - allow vertical scrolling */
     overflow-y: auto;
+    overflow-x: hidden;
     /* Better scrolling for Chrome mobile */
     overscroll-behavior: contain;
     /* Fix for content clipping in Chrome mobile */
     box-sizing: border-box;
+    /* Allow content to expand vertically */
+    height: auto;
   }
 
   /* Hide navigation arrows on mobile */
@@ -388,10 +416,16 @@
     position: relative;
     z-index: 2;
     /* Let content fill the available space */
-    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    /* Allow content to expand vertically */
+    min-height: 100%;
+    /* Remove height constraints and allow expansion */
+    height: auto;
+    flex: 1;
+    /* Allow vertical overflow when needed */
+    overflow-y: visible;
   }
 
   /* Active state for tap zones */
@@ -409,7 +443,7 @@
 @media (max-width: 480px) {
   .container {
     padding: 0.3rem;
-    /* Chrome mobile viewport for smaller screens */
+    /* Chrome mobile viewport for smaller screens - use minimum height */
     min-height: 100dvh;
     min-height: 100vh;
     /* Ensure proper flex layout */
@@ -422,6 +456,8 @@
     background: #111 !important;
     /* iOS Safari compatibility */
     min-height: -webkit-fill-available;
+    /* Allow overflow when content is too large */
+    overflow: visible;
   }
 
   .content {
@@ -434,8 +470,10 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     min-height: 0;
+    /* Remove height constraints to allow expansion */
+    height: auto;
   }
 
   .paginatedContent {
@@ -446,8 +484,11 @@
     padding: 1rem;
     /* Chrome mobile scrolling improvements */
     overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: contain;
     box-sizing: border-box;
+    /* Allow content to expand vertically */
+    height: auto;
   }
 
   /* Hide navigation arrows on mobile */

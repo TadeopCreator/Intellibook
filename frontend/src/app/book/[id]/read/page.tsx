@@ -599,7 +599,6 @@ function ReadBookPage({ params }: { params: Promise<{ id: string }> }) {
               maxWidth: `${contentWidth}px`,
               margin: '0 auto',
               lineHeight: '1.6',
-              overflow: 'hidden',
               textAlign: 'justify',
             }}
             aria-live="polite"
