@@ -484,6 +484,15 @@ def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
     if filename is None:
         filename = os.path.basename(source_file_name)
     
+    # Truncate filename if too long to prevent database column overflow
+    max_filename_length = 80  # Conservative limit to ensure full URL fits in DB
+    name, ext = os.path.splitext(filename)
+    if len(filename) > max_filename_length:
+        # Truncate the name part while preserving extension
+        name = name[:max_filename_length - len(ext)]
+        filename = name + ext
+        logger.info(f"Truncated long filename to: {filename}")
+    
     bucket_name = "intellibook_static"
     folder = "ebooks" if book_type == 'ebook' else "audiobooks"
     destination_blob_name = f"{folder}/{filename}"
