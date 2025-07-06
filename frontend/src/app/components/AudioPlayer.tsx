@@ -188,6 +188,15 @@ export default function AudioPlayer({
     }
   };
 
+  const handleStopWithoutSaving = () => {
+    // Close the modal and audio player without saving progress
+    setShowStopModal(false);
+    onClose();
+    
+    // Don't emit any event - this preserves the existing progress in the database
+    // so the audio will resume from where it was previously saved
+  };
+
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
@@ -570,13 +579,19 @@ export default function AudioPlayer({
         title="Stop Listening"
       >
         <div className={styles.modalContent}>
-          <p>Are you sure you want to stop listening? Your progress will be saved.</p>
+          <p>What would you like to do?</p>
           <div className={styles.modalButtons}>
             <button 
               onClick={handleConfirmStop}
               className={styles.primaryButton}
             >
               Save and Exit
+            </button>
+            <button 
+              onClick={handleStopWithoutSaving}
+              className={styles.secondaryButton}
+            >
+              Exit without Saving
             </button>
             <button 
               onClick={() => setShowStopModal(false)}
