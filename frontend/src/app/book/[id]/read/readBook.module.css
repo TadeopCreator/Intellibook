@@ -22,6 +22,14 @@
     /* Allow vertical scrolling but prevent zoom on double tap */
     touch-action: pan-y;
   }
+  
+  /* Make text elements pass through touch events to parent for navigation */
+  .paginatedContent p,
+  .paginatedContent span,
+  .paginatedContent div,
+  .paginatedContent br {
+    pointer-events: none;
+  }
 }
 
 /* Mobile browser viewport fixes */
