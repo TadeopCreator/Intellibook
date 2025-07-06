@@ -22,6 +22,8 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  /* Fix for iPhone Chrome scrolling issue */
+  height: 100%;
 }
 
 body {
@@ -33,6 +35,9 @@ body {
   /* Global fixes for iPhone Chrome overscroll issues */
   overscroll-behavior: none;
   overscroll-behavior-y: none;
+  /* Additional fixes for iPhone Chrome */
+  -webkit-overflow-scrolling: touch;
+  position: relative;
 }
 
 /* Dark theme override for reading pages */
@@ -79,7 +84,12 @@ a {
 }
 
 .min-h-screen {
+  /* Use dvh (dynamic viewport height) for better mobile support */
+  min-height: 100dvh;
+  /* Fallback for older browsers */
   min-height: 100vh;
+  /* Additional fix for iPhone Chrome */
+  min-height: -webkit-fill-available;
 }
 
 /* Layout adjustments for fixed navbar */
@@ -98,5 +108,19 @@ a {
 @media (max-width: 1199px) {
   .flex-col {
     padding-top: 4rem; /* Space for mobile menu button */
+  }
+}
+
+/* Additional fixes specifically for iPhone Chrome */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    /* iPhone/Safari specific fix */
+    min-height: -webkit-fill-available;
+  }
+  
+  body {
+    /* Prevent rubber band scrolling on iPhone */
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
   }
 }
