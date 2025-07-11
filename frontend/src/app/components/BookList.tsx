@@ -44,6 +44,52 @@ export default function BookList() {
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Helper function for direct upload to Cloud Storage
+  const uploadFileDirectly = async (file: File, fileType: 'ebook' | 'audiobook'): Promise<string> => {
+    try {
+      console.log(`Starting direct upload for ${fileType}: ${file.name} (${file.size} bytes)`);
+      
+      // Get signed URL from backend
+      const response = await api.request('/api/generate-upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          file_type: fileType,
+          content_type: file.type || 'application/octet-stream'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate upload URL');
+      }
+
+      const { signed_url, final_url } = await response.json();
+      console.log(`Got signed URL for ${fileType}: ${final_url}`);
+
+      // Upload file directly to Cloud Storage
+      const uploadResponse = await fetch(signed_url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream'
+        }
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file to Cloud Storage');
+      }
+
+      console.log(`Direct upload successful for ${fileType}`);
+      return final_url;
+    } catch (error) {
+      console.error('Direct upload failed:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchBooks();
   }, []);
@@ -176,7 +222,7 @@ export default function BookList() {
         }
       }
       
-      // Add file fields if available
+      // Handle ebook file
       if (ebookFile) {
         const validEbookFormat = ebookFile.name.split('.').pop()?.toLowerCase();
         if (!['pdf', 'epub', 'mobi', 'txt'].includes(validEbookFormat || '')) {
@@ -184,11 +230,21 @@ export default function BookList() {
           return;
         }
         
-        formData.append('ebook_file', ebookFile);
+        // Check file size and decide upload method
+        if (ebookFile.size > 30 * 1024 * 1024) { // 30MB
+          // Use direct upload for large files
+          const directUrl = await uploadFileDirectly(ebookFile, 'ebook');
+          formData.append('ebook_direct_url', directUrl);
+        } else {
+          // Use regular API upload for smaller files
+          formData.append('ebook_file', ebookFile);
+        }
+        
         formData.append('ebook_format', validEbookFormat as string);
         formData.append('ebook_filename', ebookFile.name);
       }
       
+      // Handle audiobook file
       if (audiobookFile) {
         const validAudioFormat = audiobookFile.name.split('.').pop()?.toLowerCase();
         if (!['mp3', 'm4a', 'wav', 'm4b', 'aac', 'ogg'].includes(validAudioFormat || '')) {
@@ -196,7 +252,22 @@ export default function BookList() {
           return;
         }
         
-        formData.append('audiobook_file', audiobookFile);
+        console.log(`Audiobook file size: ${audiobookFile.size} bytes (${(audiobookFile.size / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`Audiobook format: ${validAudioFormat}`);
+        
+        // Check file size and decide upload method
+        if (audiobookFile.size > 30 * 1024 * 1024) { // 30MB
+          console.log('Using direct upload for large audiobook file');
+          // Use direct upload for large files
+          const directUrl = await uploadFileDirectly(audiobookFile, 'audiobook');
+          console.log(`Direct upload completed. URL: ${directUrl}`);
+          formData.append('audiobook_direct_url', directUrl);
+        } else {
+          console.log('Using API upload for small audiobook file');
+          // Use regular API upload for smaller files
+          formData.append('audiobook_file', audiobookFile);
+        }
+        
         formData.append('audiobook_format', validAudioFormat as string);
         formData.append('audiobook_filename', audiobookFile.name);
       }
@@ -251,7 +322,16 @@ export default function BookList() {
           return;
         }
         
-        formData.append('ebook_file', ebookFile);
+        // Check file size and decide upload method
+        if (ebookFile.size > 30 * 1024 * 1024) { // 30MB
+          // Use direct upload for large files
+          const directUrl = await uploadFileDirectly(ebookFile, 'ebook');
+          formData.append('ebook_direct_url', directUrl);
+        } else {
+          // Use regular API upload for smaller files
+          formData.append('ebook_file', ebookFile);
+        }
+        
         formData.append('ebook_format', validEbookFormat as string);
         formData.append('ebook_filename', ebookFile.name);
       }
@@ -263,7 +343,22 @@ export default function BookList() {
           return;
         }
         
-        formData.append('audiobook_file', audiobookFile);
+        console.log(`Audiobook file size: ${audiobookFile.size} bytes (${(audiobookFile.size / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`Audiobook format: ${validAudioFormat}`);
+        
+        // Check file size and decide upload method
+        if (audiobookFile.size > 30 * 1024 * 1024) { // 30MB
+          console.log('Using direct upload for large audiobook file (edit)');
+          // Use direct upload for large files
+          const directUrl = await uploadFileDirectly(audiobookFile, 'audiobook');
+          console.log(`Direct upload completed (edit). URL: ${directUrl}`);
+          formData.append('audiobook_direct_url', directUrl);
+        } else {
+          console.log('Using API upload for small audiobook file (edit)');
+          // Use regular API upload for smaller files
+          formData.append('audiobook_file', audiobookFile);
+        }
+        
         formData.append('audiobook_format', validAudioFormat as string);
         formData.append('audiobook_filename', audiobookFile.name);
       }

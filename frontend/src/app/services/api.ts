@@ -56,6 +56,9 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
 // API service object
 export const api = {
+  // Generic request method
+  request: apiRequest,
+  
   // Auth endpoints
   auth: {
     check: () => apiRequest('/api/auth/check'),
