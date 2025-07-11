@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import sys
+import uuid
 from google.cloud.sql.connector import Connector, IPTypes
 import pymysql
 import sqlalchemy
@@ -602,6 +603,13 @@ async def create_book(
         
         # Handle ebook file if provided
         if ebook_file:
+            # Check file size - reject if too large for API upload
+            if hasattr(ebook_file, 'size') and ebook_file.size > 30 * 1024 * 1024:  # 30MB limit
+                raise HTTPException(
+                    status_code=413,
+                    detail="File too large for API upload. Use direct upload for files larger than 30MB."
+                )
+            
             # Save to temporary location first
             temp_dir = os.path.join(BASE_DIR, "temp_files")
             os.makedirs(temp_dir, exist_ok=True)
@@ -628,8 +636,23 @@ async def create_book(
             # Clean up temp file
             os.remove(temp_path)
         
+        # Handle direct ebook upload URL (for large files)
+        elif form.get('ebook_direct_url'):
+            logger.debug(f"Direct ebook upload - URL: {form.get('ebook_direct_url')}")
+            logger.debug(f"Direct ebook upload - Format: {form.get('ebook_format')}")
+            book.ebook_url = form.get('ebook_direct_url')
+            book.ebook_path = None
+            book.ebook_format = form.get('ebook_format')
+        
         # Handle audiobook file if provided
         if audiobook_file:
+            # Check file size - reject if too large for API upload
+            if hasattr(audiobook_file, 'size') and audiobook_file.size > 30 * 1024 * 1024:  # 30MB limit
+                raise HTTPException(
+                    status_code=413,
+                    detail="File too large for API upload. Use direct upload for files larger than 30MB."
+                )
+            
             # Save to temporary location first
             temp_dir = os.path.join(BASE_DIR, "temp_files")
             os.makedirs(temp_dir, exist_ok=True)
@@ -655,6 +678,14 @@ async def create_book(
             
             # Clean up temp file
             os.remove(temp_path)
+        
+        # Handle direct audiobook upload URL (for large files)
+        elif form.get('audiobook_direct_url'):
+            logger.debug(f"Direct audiobook upload - URL: {form.get('audiobook_direct_url')}")
+            logger.debug(f"Direct audiobook upload - Format: {form.get('audiobook_format')}")
+            book.audiobook_url = form.get('audiobook_direct_url')
+            book.audiobook_path = None
+            book.audiobook_format = form.get('audiobook_format')
         
         # Save book to database
         with Session(engine) as session:
@@ -701,6 +732,13 @@ async def update_book(
             
             # Handle ebook file if provided
             if ebook_file:
+                # Check file size - reject if too large for API upload
+                if hasattr(ebook_file, 'size') and ebook_file.size > 30 * 1024 * 1024:  # 30MB limit
+                    raise HTTPException(
+                        status_code=413,
+                        detail="File too large for API upload. Use direct upload for files larger than 30MB."
+                    )
+                
                 # Save to temporary location first
                 temp_dir = os.path.join(BASE_DIR, "temp_files")
                 os.makedirs(temp_dir, exist_ok=True)
@@ -724,8 +762,23 @@ async def update_book(
                 # Clean up temp file
                 os.remove(temp_path)
             
+            # Handle direct ebook upload URL (for large files)
+            elif form.get('ebook_direct_url'):
+                logger.debug(f"Direct ebook upload (update) - URL: {form.get('ebook_direct_url')}")
+                logger.debug(f"Direct ebook upload (update) - Format: {form.get('ebook_format')}")
+                book_data['ebook_url'] = form.get('ebook_direct_url')
+                book_data['ebook_path'] = None
+                book_data['ebook_format'] = form.get('ebook_format')
+
             # Handle audiobook file if provided
             if audiobook_file:
+                # Check file size - reject if too large for API upload
+                if hasattr(audiobook_file, 'size') and audiobook_file.size > 30 * 1024 * 1024:  # 30MB limit
+                    raise HTTPException(
+                        status_code=413,
+                        detail="File too large for API upload. Use direct upload for files larger than 30MB."
+                    )
+                
                 # Save to temporary location first
                 temp_dir = os.path.join(BASE_DIR, "temp_files")
                 os.makedirs(temp_dir, exist_ok=True)
@@ -748,6 +801,14 @@ async def update_book(
                 
                 # Clean up temp file
                 os.remove(temp_path)
+            
+            # Handle direct audiobook upload URL (for large files)
+            elif form.get('audiobook_direct_url'):
+                logger.debug(f"Direct audiobook upload (update) - URL: {form.get('audiobook_direct_url')}")
+                logger.debug(f"Direct audiobook upload (update) - Format: {form.get('audiobook_format')}")
+                book_data['audiobook_url'] = form.get('audiobook_direct_url')
+                book_data['audiobook_path'] = None
+                book_data['audiobook_format'] = form.get('audiobook_format')
             
             # Update book attributes
             for key, value in book_data.items():
@@ -1111,6 +1172,70 @@ async def get_signed_url(book_id: int, current_user: dict = Depends(get_current_
         except Exception as e:
             logger.error(f"Error generating signed URL: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-upload-url")
+async def generate_upload_url(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate a signed URL for direct upload to Cloud Storage"""
+    try:
+        body = await request.json()
+        filename = body.get('filename')
+        file_type = body.get('file_type')  # 'ebook' or 'audiobook'
+        content_type = body.get('content_type', 'application/octet-stream')
+        
+        logger.debug(f"Generate upload URL - filename: {filename}, file_type: {file_type}, content_type: {content_type}")
+        
+        if not filename or not file_type:
+            raise HTTPException(
+                status_code=400,
+                detail="filename and file_type are required"
+            )
+        
+        # Validate file type
+        if file_type not in ['ebook', 'audiobook']:
+            raise HTTPException(
+                status_code=400,
+                detail="file_type must be 'ebook' or 'audiobook'"
+            )
+        
+        # Generate unique filename to avoid conflicts
+        import uuid
+        unique_filename = f"{uuid.uuid4()}_{filename}"
+        
+        bucket_name = "intellibook_static"
+        folder = "ebooks" if file_type == 'ebook' else "audiobooks"
+        blob_name = f"{folder}/{unique_filename}"
+        
+        # Create storage client
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        
+        # Generate signed URL for PUT operation (upload)
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(hours=1),  # URL expires in 1 hour
+            method="PUT",
+            content_type=content_type
+        )
+        
+        # Return the signed URL and the final cloud storage URL
+        final_url = f"https://storage.cloud.google.com/{bucket_name}/{blob_name}"
+        
+        return {
+            "signed_url": signed_url,
+            "final_url": final_url,
+            "blob_name": blob_name
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating upload URL: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating upload URL: {str(e)}"
+        )
 
 # Add a public endpoint to check if user has valid token without requiring auth
 @app.get("/api/auth/check")
