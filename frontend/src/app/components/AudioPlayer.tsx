@@ -6,6 +6,7 @@ import { FaArrowRotateLeft, FaArrowRotateRight } from "react-icons/fa6";
 import styles from './AudioPlayer.module.css';
 import Modal from './Modal';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -37,7 +38,12 @@ export default function AudioPlayer({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimizing, setIsMinimizing] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [startY, setStartY] = useState(0);
+  const [isPositionSet, setIsPositionSet] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { refreshAuth, signOut } = useAuth();
 
   useEffect(() => {
     if (!isVisible) {
@@ -45,6 +51,7 @@ export default function AudioPlayer({
       setCurrentTime(0);
       setDuration(0);
       setIsLoaded(false);
+      setIsPositionSet(false);
     }
   }, [isVisible]);
 
@@ -52,9 +59,24 @@ export default function AudioPlayer({
     const audio = audioRef.current;
     if (!audio || !isVisible) return;
 
+    // Reset states when audio URL or book changes
+    setIsPlaying(false);
+    setIsLoaded(false);
+    setIsPositionSet(false);
+    setCurrentTime(initialPosition);
+
     const handleLoadedData = () => {
       setDuration(audio.duration);
       setIsLoaded(true);
+      
+      // Set the correct position BEFORE attempting to play
+      if (initialPosition > 0) {
+        audio.currentTime = initialPosition;
+        setCurrentTime(initialPosition);
+      }
+      setIsPositionSet(true);
+      
+      // Now we can safely start playing from the correct position
       if (isVisible) {
         audio.play()
           .then(() => setIsPlaying(true))
@@ -71,6 +93,7 @@ export default function AudioPlayer({
       setCurrentTime(0);
     };
 
+    // Load the audio
     audio.load();
     audio.addEventListener('loadeddata', handleLoadedData);
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -82,29 +105,11 @@ export default function AudioPlayer({
       audio.removeEventListener('ended', handleEnded);
       audio.pause();
     };
-  }, [isVisible, audioUrl]);
-
-  useEffect(() => {
-    if (audioRef.current && isVisible) {
-      audioRef.current.currentTime = initialPosition;
-    }
-  }, [isVisible, initialPosition]);
-
-  useEffect(() => {
-    // Reiniciar el estado cuando cambia el libro o la posición inicial
-    setCurrentTime(initialPosition);
-    setIsPlaying(false);
-    setIsLoaded(false);
-    
-    // Si hay un audio cargado, actualizar su posición
-    if (audioRef.current) {
-      audioRef.current.currentTime = initialPosition;
-    }
-  }, [bookId, initialPosition]);
+  }, [isVisible, audioUrl, bookId, initialPosition]);
 
   const togglePlay = async () => {
     const audio = audioRef.current;
-    if (!audio || !isLoaded) return;
+    if (!audio || !isLoaded || !isPositionSet) return;
 
     try {
       if (isPlaying) {
@@ -136,13 +141,40 @@ export default function AudioPlayer({
     return hours > 0 ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}` : `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const saveProgress = async (position: number) => {
+  const saveProgress = async (position: number, retryCount: number = 0) => {
     try {
       await api.progress.update(parseInt(bookId), {
         audiobook_position: Math.floor(position)
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving progress:', error);
+      
+      // Check if it's an authentication error
+      if (error.message && error.message.includes('401') && retryCount === 0) {
+        // Try to refresh authentication once
+        try {
+          const refreshed = await refreshAuth();
+          if (refreshed) {
+            // Retry saving progress with refreshed auth
+            return await saveProgress(position, 1);
+          } else {
+            // Refresh failed, show session expired message
+            alert('Your session has expired. Please log in again to save your progress.');
+            signOut();
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh auth:', refreshError);
+          alert('Your session has expired. Please log in again to save your progress.');
+          signOut();
+        }
+      } else if (error.message && error.message.includes('401')) {
+        // Already retried once, session is definitely expired
+        alert('Your session has expired. Please log in again to save your progress.');
+        signOut();
+      } else {
+        // Show generic error message for non-auth errors
+        alert('Failed to save progress. Please try again later.');
+      }
     }
   };
 
@@ -313,6 +345,10 @@ export default function AudioPlayer({
   const handleMinimize = (e: React.MouseEvent) => {
     e.stopPropagation();
     
+    // Limpiar estados del drag
+    setIsDragging(false);
+    setDragOffset(0);
+    
     // Iniciar la animación de minimización
     setIsMinimizing(true);
     
@@ -374,6 +410,46 @@ export default function AudioPlayer({
     if (audioRef.current) {
       audioRef.current.playbackRate = nextSpeed;
       setPlaybackSpeed(nextSpeed);
+    }
+  };
+
+  // Funciones para manejar el gesto de deslizar hacia abajo
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isExpanded) return;
+    const touch = e.touches[0];
+    setStartY(touch.clientY);
+    setIsDragging(true);
+    setDragOffset(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !isExpanded) return;
+    
+    const touch = e.touches[0];
+    const currentY = touch.clientY;
+    const diff = currentY - startY;
+    
+    // Solo permitir deslizar hacia abajo
+    if (diff > 0) {
+      // Agregar resistencia después de 150px para hacer el gesto más natural
+      const resistance = diff > 150 ? 150 + (diff - 150) * 0.3 : diff;
+      setDragOffset(resistance);
+      // Prevenir el scroll del body
+      e.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging || !isExpanded) return;
+    
+    setIsDragging(false);
+    
+    // Si se deslizó más de 100px hacia abajo, cerrar el reproductor
+    if (dragOffset > 100) {
+      handleMinimize(new MouseEvent('click') as unknown as React.MouseEvent);
+    } else {
+      // Si no, regresar a la posición original
+      setDragOffset(0);
     }
   };
 
@@ -454,7 +530,18 @@ export default function AudioPlayer({
           <div 
             className={`${styles.expandedPlayer} ${isMinimizing ? styles.minimizing : ''}`} 
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{
+              transform: isDragging ? `translateY(${dragOffset}px)` : 'translateY(0)',
+              opacity: isDragging ? Math.max(0.3, 1 - (dragOffset / 300)) : 1,
+              transition: isDragging ? 'none' : 'transform 0.3s ease-out, opacity 0.3s ease-out'
+            }}
           >
+            {/* Indicador de swipe */}
+            <div className={styles.swipeIndicator}></div>
+            
             <div className={styles.expandedCoverContainer}>
               {coverUrl && (
                 <img 

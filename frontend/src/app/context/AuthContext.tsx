@@ -12,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: () => void;
   signOut: () => void;
+  refreshAuth: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signIn: () => {},
   signOut: () => {},
+  refreshAuth: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -97,8 +99,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
+  const refreshAuth = async (): Promise<boolean> => {
+    try {
+      await checkAuth();
+      return user !== null;
+    } catch (error) {
+      console.error('Failed to refresh auth:', error);
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

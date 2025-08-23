@@ -1,16 +1,19 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Book, BookStatus, EbookFormat, AudiobookFormat } from '../types/Book';
 import styles from './BookList.module.css';
 import ReadingProgressTracker from './ReadingProgress';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
-import { BiPlus, BiSort, BiFilter } from 'react-icons/bi';
+import { BiPlus, BiSort, BiFilter, BiEdit, BiDotsVerticalRounded } from 'react-icons/bi';
+import { BsGrid3X3Gap, BsList, BsCheckCircleFill, BsBookmarkFill, BsEyeFill } from 'react-icons/bs';
+import { MdDelete } from 'react-icons/md';
 import { api } from '../services/api';
 
 // Tipos para los filtros y ordenación
 type SortOption = 'last_read' | 'title';
 type FilterOption = 'all' | 'to_read' | 'reading' | 'read' | 'with_ebook' | 'with_audiobook';
+type ViewOption = 'grid' | 'list';
 
 // Extender el tipo Book para incluir información de progreso
 interface BookWithProgress extends Book {
@@ -30,7 +33,7 @@ export default function BookList() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const ebookInputRef = useRef<HTMLInputElement>(null);
   const audiobookInputRef = useRef<HTMLInputElement>(null);
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+
   const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<number | null>(null);
@@ -43,6 +46,14 @@ export default function BookList() {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewOption>('grid');
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  
+  // Lazy loading states
+  const [displayedBooks, setDisplayedBooks] = useState<BookWithProgress[]>([]);
+  const [itemsToShow, setItemsToShow] = useState(10); // Start with 10 books
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Helper function for direct upload to Cloud Storage
   const uploadFileDirectly = async (file: File, fileType: 'ebook' | 'audiobook'): Promise<string> => {
@@ -92,71 +103,128 @@ export default function BookList() {
 
   useEffect(() => {
     fetchBooks();
+    // Cargar preferencia de vista desde localStorage
+    const savedViewMode = localStorage.getItem('bookLibraryViewMode') as ViewOption;
+    if (savedViewMode && (savedViewMode === 'grid' || savedViewMode === 'list')) {
+      setViewMode(savedViewMode);
+    }
   }, []);
+
+  // Cerrar dropdown cuando se hace click fuera
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (activeDropdown !== null) {
+        setActiveDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [activeDropdown]);
 
   // Aplicar filtros y ordenación cuando cambian los libros o las opciones
   useEffect(() => {
     applyFiltersAndSort();
   }, [books, sortBy, filterBy]);
 
+  // Update displayed books when itemsToShow changes
+  useEffect(() => {
+    setDisplayedBooks(filteredBooks.slice(0, itemsToShow));
+  }, [filteredBooks, itemsToShow]);
+
+  // Load more books function
+  const loadMoreBooks = useCallback(() => {
+    if (isLoadingMore || displayedBooks.length >= filteredBooks.length) return;
+    
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setItemsToShow(prev => prev + 10);
+      setIsLoadingMore(false);
+    }, 300); // Small delay to show loading state
+  }, [isLoadingMore, displayedBooks.length, filteredBooks.length]);
+
+  // Intersection Observer for lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreBooks();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current);
+    }
+
+    return () => {
+      if (sentinelRef.current) {
+        observer.unobserve(sentinelRef.current);
+      }
+    };
+  }, [loadMoreBooks]);
+
   const fetchBooks = async () => {
     setIsLoading(true);
     try {
-      // Try the endpoint with progress first
-      let response = await api.books.getAllWithProgress();
+      // Always prioritize the combined endpoint
+      const response = await api.books.getAllWithProgress();
       
       if (response.ok) {
         const data = await response.json();
         
         if (Array.isArray(data)) {
-          setBooks(data);
+          // Normalize progress data to ensure consistency
+          const normalizedBooks = data.map((book: BookWithProgress) => ({
+            ...book,
+            progress: book.progress || {
+              last_read_date: null,
+              progress_percentage: 0,
+              audiobook_position: null,
+              scroll_position: 0
+            }
+          }));
+          setBooks(normalizedBooks);
           return;
         } else {
           console.error('API response is not an array:', data);
           setBooks([]);
+          return;
         }
       } else {
-        // If that fails, use the regular books endpoint and load progress separately
-        console.warn('Endpoint with progress failed, falling back to regular books endpoint');
-        response = await api.books.getAll();
-        
-        if (!response.ok) {
-          throw new Error(`Error fetching books: ${response.status}`);
-        }
-        
-        const booksData = await response.json();
-        
-        // Load progress separately for each book
-        const booksWithProgress = await Promise.all(
-          booksData.map(async (book: Book) => {
-            try {
-              if (book.id) {
-                const progressResponse = await api.progress.get(book.id);
-                if (progressResponse.ok) {
-                  const progressData = await progressResponse.json();
-                  return {
-                    ...book,
-                    progress: {
-                      last_read_date: progressData.last_read_date,
-                      progress_percentage: progressData.progress_percentage || 0,
-                      audiobook_position: progressData.audiobook_position,
-                      scroll_position: progressData.scroll_position || 0
-                    }
-                  };
-                }
-              }
-              return { ...book, progress: { last_read_date: null, progress_percentage: 0, audiobook_position: null, scroll_position: 0 } };
-            } catch (e) {
-              return { ...book, progress: { last_read_date: null, progress_percentage: 0, audiobook_position: null, scroll_position: 0 } };
-            }
-          })
-        );
-        
-        setBooks(booksWithProgress);
+        throw new Error(`Combined endpoint failed with status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error fetching books:', error);
-      setBooks([]);
+      console.error('Error fetching books with progress:', error);
+      
+      // Fallback to regular books endpoint (without individual progress calls for performance)
+      try {
+        console.warn('Falling back to regular books endpoint');
+        const fallbackResponse = await api.books.getAll();
+        
+        if (fallbackResponse.ok) {
+          const booksData = await fallbackResponse.json();
+          // Set default progress for all books to avoid inconsistencies
+          const booksWithDefaultProgress = booksData.map((book: Book) => ({
+            ...book,
+            progress: {
+              last_read_date: null,
+              progress_percentage: 0,
+              audiobook_position: null,
+              scroll_position: 0
+            }
+          }));
+          setBooks(booksWithDefaultProgress);
+        } else {
+          throw new Error(`Fallback endpoint failed with status: ${fallbackResponse.status}`);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        setBooks([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -207,6 +275,9 @@ export default function BookList() {
     });
     
     setFilteredBooks(result);
+    // Reset items to show when filters/sort change
+    setItemsToShow(10);
+    setDisplayedBooks(result.slice(0, 10));
   };
 
   const handleAddBook = async (e: React.FormEvent) => {
@@ -411,17 +482,7 @@ export default function BookList() {
     setAudiobookFile(null);
   };
 
-  const toggleCardExpansion = (bookId: number) => {
-    setExpandedCards(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(bookId)) {
-        newSet.delete(bookId);
-      } else {
-        newSet.add(bookId);
-      }
-      return newSet;
-    });
-  };
+
 
   const handleCardClick = (bookId: number) => {
     router.push(`/book/${bookId}`);
@@ -443,18 +504,60 @@ export default function BookList() {
     setShowFilterOptions(false);
   };
 
+  const handleViewModeChange = () => {
+    const newViewMode = viewMode === 'grid' ? 'list' : 'grid';
+    setViewMode(newViewMode);
+    localStorage.setItem('bookLibraryViewMode', newViewMode);
+  };
+
+  const getStatusIcon = (status: string) => {
+    const getStatusClass = (status: string) => {
+      switch (status) {
+        case 'Read':
+          return `${styles.statusIcon} ${styles.read}`;
+        case 'Reading':
+          return `${styles.statusIcon} ${styles.reading}`;
+        case 'To read':
+          return `${styles.statusIcon} ${styles.toread}`;
+        default:
+          return styles.statusIcon;
+      }
+    };
+
+    switch (status) {
+      case 'Read':
+        return <BsCheckCircleFill className={getStatusClass(status)} />;
+      case 'Reading':
+        return <BsEyeFill className={getStatusClass(status)} />;
+      case 'To read':
+        return <BsBookmarkFill className={getStatusClass(status)} />;
+      default:
+        return null;
+    }
+  };
+
+  const getProgressPercentage = (book: BookWithProgress) => {
+    if (book.status === 'Read') return 100;
+    return book.progress?.progress_percentage || 0;
+  };
+
+  const toggleDropdown = (bookId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveDropdown(activeDropdown === bookId ? null : bookId);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerActions}>
-          {/* Botones de filtro y ordenación */}
+          {/* Primera fila: Botones de filtro y ordenación */}
           <div className={styles.filterSortContainer}>
             <div className={styles.dropdown}>
               <button 
                 onClick={() => setShowSortOptions(!showSortOptions)}
                 className={styles.filterButton}
               >
-                <BiSort size={16} />
+                <BiSort size={14} />
                 <span>Sort: {getSortLabel(sortBy)}</span>
               </button>
               {showSortOptions && (
@@ -480,7 +583,7 @@ export default function BookList() {
                 onClick={() => setShowFilterOptions(!showFilterOptions)}
                 className={styles.filterButton}
               >
-                <BiFilter size={16} />
+                <BiFilter size={14} />
                 <span>Filter: {getFilterLabel(filterBy)}</span>
               </button>
               {showFilterOptions && (
@@ -526,13 +629,24 @@ export default function BookList() {
             </div>
           </div>
 
-          <button 
-            onClick={() => setIsAdding(true)}
-            className={styles.addButton}
-          >
-            <BiPlus size={16} />
-            <span>Add Book Manually</span>
-          </button>
+          {/* Segunda fila: View toggle y Add button */}
+          <div className={styles.secondRow}>
+            <button 
+              onClick={handleViewModeChange}
+              className={styles.viewToggleButton}
+              title={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+            >
+              {viewMode === 'grid' ? <BsList size={16} /> : <BsGrid3X3Gap size={16} />}
+            </button>
+
+            <button 
+              onClick={() => setIsAdding(true)}
+              className={styles.addButton}
+            >
+              <BiPlus size={14} />
+              <span>Add Book Manually</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -778,7 +892,7 @@ export default function BookList() {
         </div>
       </Modal>
 
-      <div className={styles.bookList}>
+      <div className={`${styles.bookList} ${viewMode === 'list' ? styles.listView : styles.gridView}`}>
         {isLoading ? (
           // Skeleton loader
           Array.from({ length: 6 }).map((_, index) => (
@@ -796,7 +910,8 @@ export default function BookList() {
             <p>No books found with the current filters.</p>
           </div>
         ) : (
-          filteredBooks.map((book) => (
+          <>
+            {displayedBooks.map((book) => (
             <div 
               key={book.id} 
               className={styles.bookCard}
@@ -815,119 +930,101 @@ export default function BookList() {
 
               <div className={styles.bookInfo}>
                 <div className={styles.bookBasicInfo}>
-                  <h3>{book.title}</h3>
-                  <p className={styles.author}>By {book.author}</p>
-                  
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleCardExpansion(book.id!);
-                    }}
-                    className={styles.expandButton}
-                  >
-                    {expandedCards.has(book.id!) ? 'Show less' : 'Show more'}
-                  </button>
-                </div>
-
-                <div className={`${styles.expandableContent} ${expandedCards.has(book.id!) ? styles.expanded : ''}`}>
-                  <div className={styles.status}>
-                    <span className={`${styles.statusBadge} ${styles[book.status?.toLowerCase() || '']}`}>
-                      {book.status}
-                    </span>
-                  </div>
-
-                  {book.progress?.last_read_date && (
-                    <p className={styles.lastRead}>
-                      Last read: {new Date(book.progress.last_read_date).toLocaleDateString()}
-                    </p>
-                  )}
-
-                  {book.publisher && (
-                    <p className={styles.publisher}>
-                      {book.publisher}, {book.publish_year}
-                    </p>
-                  )}
-
-                  {book.description && (
-                    <div className={styles.description}>{book.description}</div>
-                  )}
-
-                  {book.start_date && (
-                    <p className={styles.dates}>
-                      Started: {new Date(book.start_date).toLocaleDateString()}
-                      {book.finish_date && ` - Finished: ${new Date(book.finish_date).toLocaleDateString()}`}
-                    </p>
-                  )}
-
-                  {book.notes && (
-                    <div className={styles.notes}>
-                      <h4>Notes:</h4>
-                      <p>{book.notes}</p>
+                  <div className={styles.bookHeader}>
+                    <div className={styles.bookTitleSection}>
+                      <h3>{book.title}</h3>
+                      <p className={styles.author}>By {book.author}</p>
                     </div>
-                  )}
-
-                  <ReadingProgressTracker 
-                    bookId={book.id!}
-                    totalPages={book.pages}
-                    hasAudiobook={Boolean(book.audiobook_url || book.audiobook_path)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-
-                  <div className={styles.bookResources}>
-                    {(book.ebook_url || book.ebook_path) && (
-                      <div className={styles.resourceSection}>
-                        <h4>📚 Ebook</h4>
+                    
+                    <div className={styles.bookActions}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditing(book);
+                        }}
+                        className={styles.editButton}
+                        title="Edit book"
+                      >
+                        <BiEdit size={16} />
+                      </button>
+                      
+                      <div className={styles.dropdown}>
                         <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/book/${book.id}/read`);
-                          }}
-                          className={styles.actionButton}
+                          onClick={(e) => toggleDropdown(book.id!, e)}
+                          className={styles.optionsButton}
+                          title="More options"
                         >
-                          {(book.progress?.progress_percentage || 0) > 0 ? 'Continue Reading' : 'Read Online'}
+                          <BiDotsVerticalRounded size={16} />
                         </button>
+                        {activeDropdown === book.id && (
+                          <div className={styles.dropdownContent}>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDeleteModal(book.id!);
+                                setActiveDropdown(null);
+                              }}
+                              className={styles.deleteOption}
+                            >
+                              <MdDelete size={14} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.statusAndProgress}>
+                    {/* Show status section only for non-Read books */}
+                    {!(book.status?.toLowerCase() === 'read' || book.status?.toLowerCase() === 'leído') && (
+                      <div className={styles.statusSection}>
+                        {getStatusIcon(book.status || 'To read')}
+                        <span className={`${styles.statusText} ${styles[book.status?.toLowerCase() || '']}`}>
+                          {book.status}
+                        </span>
                       </div>
                     )}
-
-                    {(book.audiobook_url || book.audiobook_path) && (
-                      <div className={styles.resourceSection}>
-                        <h4>🎧 Audiobook</h4>
-                        <a 
-                          href={book.audiobook_url || `/api/books/${book.id}/listen`} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className={styles.actionButton}
-                        >
-                          Listen Online
-                        </a>
+                    
+                    {/* Show progress bar only for "Reading" books with progress > 0 */}
+                    {(book.status?.toLowerCase() === 'reading' || book.status?.toLowerCase() === 'leyendo') && getProgressPercentage(book) > 0 && (
+                      <div className={styles.progressSection}>
+                        <div className={styles.progressBar}>
+                          <div 
+                            className={styles.progressFill}
+                            style={{ width: `${getProgressPercentage(book)}%` }}
+                          />
+                        </div>
+                        <span className={styles.progressText}>
+                          {Math.round(getProgressPercentage(book))}%
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Show "Read" badge for completed books */}
+                    {(book.status?.toLowerCase() === 'read' || book.status?.toLowerCase() === 'leído') && (
+                      <div className={styles.readBadge}>
+                        READ
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-
-              <div className={styles.bookActions}>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startEditing(book);
-                  }}
-                  className={styles.editButton}
-                >
-                  Edit
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openDeleteModal(book.id!);
-                  }}
-                  className={styles.deleteButton}
-                >
-                  Delete
-                </button>
               </div>
             </div>
-          ))
+            ))}
+            
+            {/* Lazy loading sentinel */}
+            {displayedBooks.length < filteredBooks.length && (
+              <div ref={sentinelRef} className={styles.sentinelElement}>
+                {isLoadingMore && (
+                  <div className={styles.loadingMore}>
+                    <div className={styles.spinner}></div>
+                    <p>Loading more books...</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

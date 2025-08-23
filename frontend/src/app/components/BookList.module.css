@@ -17,28 +17,154 @@
 }
 
 .addButton {
-  background: #2a2a2a;
+  background: #ff8c00;
   color: #fff;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 0.8rem 1.2rem;
+  border: 1px solid #e67e00;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.4rem;
   justify-content: flex-start;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .addButton:hover {
-  background: #333;
+  background: #e67e00;
+  border-color: #cc7000;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(255, 140, 0, 0.2);
 }
 
 .bookList {
+  margin-top: 2rem;
+  width: 100%;
+}
+
+/* Vista de cuadrícula (por defecto) */
+.gridView {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
-  margin-top: 2rem;
+}
+
+/* Vista de lista */
+.listView {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Estilos específicos para tarjetas en vista de lista */
+.listView .bookCard {
+  flex-direction: row;
+  height: auto;
+  min-height: 140px;
+  max-height: 160px;
+}
+
+.listView .coverContainer {
+  width: 90px;
+  min-width: 90px;
+  padding-top: 0;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.listView .bookInfo {
+  flex: 1;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+/* Estilos específicos del nuevo diseño para vista lista */
+.listView .bookHeader {
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.listView .bookActions {
+  gap: 0.2rem;
+}
+
+.listView .editButton,
+.listView .optionsButton {
+  min-width: 28px;
+  height: 28px;
+  padding: 0.3rem;
+}
+
+.listView .statusAndProgress {
+  gap: 0.5rem;
+}
+
+.listView .progressBar {
+  height: 4px;
+}
+
+.listView .progressText {
+  font-size: 0.75rem;
+  min-width: 30px;
+}
+
+.listView .readBadge {
+  font-size: 0.65rem;
+  padding: 3px 6px;
+}
+
+.listView .sentinelElement {
+  grid-column: auto;
   width: 100%;
+}
+
+.listView .statusIcon {
+  font-size: 0.9rem;
+}
+
+.listView .statusText {
+  font-size: 0.8rem;
+}
+
+/* Ajustar tamaños de texto en vista lista para mayor compacidad */
+.listView .bookInfo h3 {
+  font-size: 1.1rem;
+  line-height: 1.2;
+  margin-bottom: 0.3rem;
+}
+
+.listView .bookTitleSection h3 {
+  font-size: 1.1rem;
+  line-height: 1.2;
+  -webkit-line-clamp: 1;
+  max-width: 200px;
+}
+
+.listView .author {
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.listView .statusBadge {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.8rem;
+}
+
+
+
+.listView .editButton,
+.listView .deleteButton {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
 }
 
 .bookCard {
@@ -88,6 +214,20 @@
   margin: 0;
   color: #333;
   line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Permitir wrap en títulos cuando hay más espacio */
+.bookTitleSection h3 {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .author {
@@ -270,49 +410,216 @@
 .bookBasicInfo {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
   padding-bottom: 0.5rem;
 }
 
-.expandButton {
-  align-self: flex-start;
-  padding: 0.5rem 1rem;
-  background: none;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  color: #666;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 0;
+.bookHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
-.expandButton:hover {
+.bookTitleSection {
+  flex: 1;
+  min-width: 0;
+}
+
+.bookActions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.editButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
   background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 32px;
+  height: 32px;
+}
+
+.editButton:hover {
+  background: #e8e8e8;
+  color: #333;
   border-color: #ccc;
 }
 
-.expandableContent {
+.optionsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 32px;
+  height: 32px;
+}
+
+.optionsButton:hover {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.deleteOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.deleteOption:hover {
+  background: #fef2f2;
+}
+
+.statusAndProgress {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: all 0.3s ease-in-out;
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid transparent;
 }
 
-.expandableContent.expanded {
-  max-height: 2000px;
-  opacity: 1;
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0;
-  border-top: 1px solid #eee;
+.statusSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
+
+.statusIcon {
+  font-size: 1rem;
+}
+
+.statusText {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.statusText.read {
+  color: #ea580c;
+}
+
+.statusText.reading {
+  color: #ea580c;
+}
+
+.statusText.toread {
+  color: #6b7280;
+}
+
+/* Colores específicos para iconos de estado */
+.statusIcon.read {
+  color: #ea580c; /* Orange for read */
+}
+
+.statusIcon.reading {
+  color: #ea580c; /* Same orange as read */
+}
+
+.statusIcon.toread {
+  color: #6b7280; /* Gray for to read */
+}
+
+.progressSection {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.progressBar {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff8c00, #e67e00);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progressText {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 35px;
+  text-align: right;
+}
+
+.readBadge {
+  background: #ea580c;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.3);
+  min-width: fit-content;
+}
+
+/* Lazy loading styles */
+.sentinelElement {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
+  width: 100%;
+}
+
+.loadingMore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.loadingMore p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #ea580c;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
 
 .actionButton {
   display: inline-flex;
@@ -459,15 +766,7 @@
     border-color: #333;
   }
 
-  .expandButton {
-    border-color: #444;
-    color: #999;
-  }
 
-  .expandButton:hover {
-    background: #2a2a2a;
-    border-color: #666;
-  }
 
   .actionButton {
     background: #ff8c00;
@@ -478,7 +777,19 @@
     background: #e67e00;
   }
 
-  .expandableContent.expanded {
+
+
+  .viewToggleButton {
+    background: #2a2a2a;
+    color: #fff;
+    border-color: #333;
+  }
+
+  .viewToggleButton:hover {
+    background: #333;
+  }
+
+  .listView .bookActions {
     border-color: #333;
   }
 
@@ -490,6 +801,116 @@
 
     .bookInfo {
       background: #1a1a1a;
+    }
+
+    .listView .bookActions {
+      border-color: #333;
+    }
+  }
+
+  /* Estilos de modo oscuro para la vista de lista compacta */
+  .listView .bookInfo h3 {
+    color: #fff;
+  }
+
+  .listView .author {
+    color: #999;
+  }
+
+  /* Estilos de modo oscuro para el nuevo diseño */
+  .editButton {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #ccc;
+  }
+
+  .editButton:hover {
+    background: #333;
+    border-color: #555;
+    color: #fff;
+  }
+
+  .optionsButton {
+    color: #ccc;
+  }
+
+  .optionsButton:hover {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #fff;
+  }
+
+  .deleteOption:hover {
+    background: #2a1a1a;
+  }
+
+  .progressBar {
+    background: #374151;
+  }
+
+  .progressText {
+    color: #d1d5db;
+  }
+
+  .readBadge {
+    background: #f97316;
+    box-shadow: 0 1px 3px rgba(249, 115, 22, 0.4);
+  }
+
+  .loadingMore {
+    color: #9ca3af;
+  }
+
+  .spinner {
+    border: 3px solid #374151;
+    border-top: 3px solid #f97316;
+  }
+
+  .statusText.read {
+    color: #f97316;
+  }
+
+  .statusText.reading {
+    color: #f97316;
+  }
+
+  .statusText.toread {
+    color: #9ca3af;
+  }
+
+  .statusIcon.read {
+    color: #f97316;
+  }
+
+  .statusIcon.reading {
+    color: #f97316;
+  }
+
+  .statusIcon.toread {
+    color: #9ca3af;
+  }
+
+  /* Mantener color del botón Add en modo oscuro */
+  .addButton {
+    background: #ff8c00;
+    border-color: #e67e00;
+  }
+
+  .addButton:hover {
+    background: #e67e00;
+    border-color: #cc7000;
+  }
+
+  /* Estilos de modo oscuro para móviles */
+  @media (max-width: 480px) {
+    .listView .bookActions {
+      border-color: #333;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .listView .bookActions {
+      border-color: #333;
     }
   }
 }
@@ -715,9 +1136,19 @@
     margin-bottom: 0.3rem;
   }
 
+  .bookTitleSection h3 {
+    font-size: 1rem;
+    line-height: 1.3;
+    -webkit-line-clamp: 2;
+    margin-bottom: 0.3rem;
+  }
+
   .author {
     font-size: 0.9rem;
     margin-bottom: 0.3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .status {
@@ -746,10 +1177,24 @@
 
   .bookInfo h3 {
     font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .bookTitleSection h3 {
+    font-size: 0.9rem;
+    -webkit-line-clamp: 2;
+    max-width: 100%;
   }
 
   .author {
     font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .statusBadge {
@@ -763,21 +1208,136 @@
   }
 
   .addButton {
-    font-size: 0.9rem;
-    padding: 0.7rem 1rem;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.8rem;
+  }
+
+  .secondRow {
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  /* Mantener vista horizontal ultra-compacta en móviles */
+  .listView .bookCard {
+    min-height: 100px;
+    max-height: 120px;
+  }
+
+  .listView .coverContainer {
+    width: 60px;
+    min-width: 60px;
+    height: 100px;
+  }
+
+  .listView .bookInfo {
+    padding: 0.5rem 0.6rem;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .listView .bookActions {
+    padding: 0.5rem;
+    min-width: 70px;
+    gap: 0.3rem;
+  }
+
+  .listView .bookInfo h3 {
+    font-size: 0.85rem;
+    line-height: 1.1;
+    margin-bottom: 0.2rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+  }
+
+  .listView .bookTitleSection h3 {
+    font-size: 0.85rem;
+    line-height: 1.1;
+    -webkit-line-clamp: 1;
+    max-width: 120px;
+    margin-bottom: 0.2rem;
+  }
+
+  .listView .author {
+    font-size: 0.75rem;
+    margin-bottom: 0.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 120px;
+  }
+
+  .listView .statusBadge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+
+
+  .listView .editButton,
+  .listView .deleteButton {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  /* Nuevo diseño para móviles pequeños */
+  .listView .editButton,
+  .listView .optionsButton {
+    min-width: 24px;
+    height: 24px;
+    padding: 0.2rem;
+  }
+
+  .listView .bookHeader {
+    gap: 0.3rem;
+  }
+
+  .listView .statusIcon {
+    font-size: 0.8rem;
+  }
+
+  .listView .statusText {
+    font-size: 0.75rem;
+  }
+
+  .listView .progressText {
+    font-size: 0.65rem;
+    min-width: 22px;
+  }
+
+  .listView .readBadge {
+    font-size: 0.6rem;
+    padding: 2px 5px;
   }
 }
 
-/* Para pantallas grandes, podemos volver al layout horizontal */
-@media (min-width: 1024px) {
-  .header {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+/* Solo para pantallas extremadamente pequeñas (menos de 320px) usar layout vertical */
+@media (max-width: 320px) {
+  .listView .bookCard {
+    flex-direction: column;
+    min-height: auto;
+    max-height: none;
   }
 
-  .addButton {
-    width: auto;
+  .listView .coverContainer {
+    width: 100%;
+    padding-top: 80px;
+    height: auto;
+  }
+
+  .listView .bookActions {
+    border-left: none;
+    border-top: 1px solid #eee;
+    flex-direction: row;
+    min-width: auto;
+    justify-content: center;
+  }
+
+  .listView .bookInfo h3 {
+    -webkit-line-clamp: unset;
+    white-space: normal;
   }
 }
 
@@ -788,9 +1348,40 @@
   flex-wrap: wrap;
 }
 
+/* Para pantallas grandes, podemos volver al layout horizontal */
+@media (min-width: 1024px) {
+  .header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .headerActions {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    gap: 1rem;
+  }
+
+  .secondRow {
+    gap: 1rem;
+  }
+
+  .addButton {
+    width: auto;
+    flex: none;
+  }
+}
+
+.secondRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .filterSortContainer {
   display: flex;
-  gap: 0.8rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
 }
 
@@ -802,13 +1393,13 @@
 .filterButton {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem;
   background: #2a2a2a;
   color: #fff;
   border: 1px solid #333;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -819,30 +1410,49 @@
   background: #333;
 }
 
+.viewToggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 34px;
+  height: 34px;
+}
+
+.viewToggleButton:hover {
+  background: #333;
+}
+
 .dropdownContent {
   position: absolute;
   top: 100%;
   left: 0;
   z-index: 10;
   background: #222;
-  min-width: 180px;
+  min-width: 160px;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 .dropdownContent button {
   display: block;
   width: 100%;
-  padding: 0.8rem 1rem;
+  padding: 0.7rem 0.8rem;
   text-align: left;
   background: none;
   border: none;
   color: #fff;
   cursor: pointer;
   transition: background 0.2s;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .dropdownContent button:hover {
@@ -869,11 +1479,13 @@
     flex-direction: column;
     align-items: stretch;
     width: 100%;
+    gap: 0.8rem;
   }
   
   .filterSortContainer {
     width: 100%;
     justify-content: space-between;
+    align-items: center;
   }
   
   .dropdown {
@@ -885,9 +1497,86 @@
     justify-content: flex-start;
   }
   
-  .addButton {
+  /* Segunda fila: View toggle y Add button */
+  .secondRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
+    gap: 0.8rem;
+  }
+  
+  .addButton {
+    flex: 1;
     justify-content: flex-start;
+  }
+
+  /* Mantener vista horizontal compacta en tablets y móviles grandes */
+  .listView .bookCard {
+    min-height: 110px;
+    max-height: 130px;
+  }
+
+  .listView .coverContainer {
+    width: 70px;
+    min-width: 70px;
+    height: 110px;
+  }
+
+  .listView .bookInfo {
+    padding: 0.7rem 0.8rem;
+    min-width: 0; /* Permite que el contenido se comprima */
+  }
+
+  .listView .bookInfo h3 {
+    font-size: 0.95rem;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .listView .bookTitleSection h3 {
+    font-size: 0.95rem;
+    line-height: 1.2;
+    -webkit-line-clamp: 1;
+    max-width: 150px;
+  }
+
+  .listView .author {
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
+  }
+
+
+
+  /* Nuevo diseño para tablets */
+  .listView .bookHeader {
+    gap: 0.4rem;
+  }
+
+  .listView .editButton,
+  .listView .optionsButton {
+    min-width: 26px;
+    height: 26px;
+    padding: 0.25rem;
+  }
+
+  .listView .statusAndProgress {
+    gap: 0.4rem;
+  }
+
+  .listView .progressText {
+    font-size: 0.7rem;
+    min-width: 25px;
+  }
+
+  .listView .readBadge {
+    font-size: 0.65rem;
+    padding: 3px 6px;
   }
 }
 
@@ -978,13 +1667,13 @@
     width: 100%;
   }
 
-  .bookList {
+  .gridView {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 
 @media (min-width: 1600px) {
-  .bookList {
+  .gridView {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
 } 

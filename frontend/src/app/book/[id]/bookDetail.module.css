@@ -259,6 +259,10 @@
   margin: 0 0 1.5rem 0;
 }
 
+.progressContainer {
+  padding: 1rem 0;
+}
+
 .detailGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

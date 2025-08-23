@@ -48,7 +48,17 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   if (!response.ok) {
     const errorText = await response.text();
     console.error('API Error:', response.status, response.statusText, errorText);
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    
+    // Handle authentication errors specifically
+    if (response.status === 401) {
+      // Clear the invalid token
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+      }
+      throw new Error(`401 Unauthorized: ${errorText || 'Authentication required'}`);
+    }
+    
+    throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText || 'Unknown error'}`);
   }
   
   return response;

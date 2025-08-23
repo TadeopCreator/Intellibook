@@ -34,11 +34,6 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
                 )
             
             user_info = response.json()
-
-        print("jkasdbhflkasdhjkjlasdhfklasdhfkasdhfkdasjkfasdhjkfasdfhkasdfhklasdjfhkladsfklasdh")
-        print(user_info)
-        print("jkasdbhflkasdhjkjlasdhfklasdhfkasdhfkdasjkfasdhjkfasdfhkasdfhklasdjfhkladsfklasdh2")
-        print(ALLOWED_EMAIL)
         
         # Check if the email matches the allowed email
         if user_info.get('email') != ALLOWED_EMAIL:

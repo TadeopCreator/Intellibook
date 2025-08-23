@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { BiDownload, BiArrowBack, BiBookOpen, BiHeadphone } from 'react-icons/bi';
 import NavMenu from '../../components/NavMenu';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import ReadingProgressTracker from '../../components/ReadingProgress';
 import Link from 'next/link';
 import { useAudio } from '../../context/AudioContext';
 import { api } from '../../services/api';
@@ -261,6 +262,17 @@ function BookDetailPage({ params }: { params: Promise<{ id: string }>}) {
         </div>
 
         <div className={styles.details}>
+          <div className={styles.detailSection}>
+            <h3>Reading Progress</h3>
+            <div className={styles.progressContainer}>
+              <ReadingProgressTracker 
+                bookId={book.id!}
+                totalPages={book.pages}
+                hasAudiobook={Boolean(book.audiobook_url || book.audiobook_path)}
+              />
+            </div>
+          </div>
+
           <div className={styles.detailSection}>
             <h3>Book Details</h3>
             <div className={styles.detailGrid}>
