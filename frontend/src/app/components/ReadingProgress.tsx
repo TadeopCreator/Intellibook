@@ -111,25 +111,7 @@ export default function ReadingProgressTracker({
             />
           </div>
 
-          {hasAudiobook && (
-            <div className={styles.inputGroup}>
-              <label>Audio position (HH:MM:SS):</label>
-              <input
-                type="text"
-                pattern="[0-9]{1,2}:[0-9]{2}:[0-9]{2}"
-                placeholder="00:00:00"
-                value={progress?.audiobook_position ? formatTime(progress.audiobook_position) : ''}
-                onChange={(e) => {
-                  const [hours, minutes, seconds] = e.target.value.split(':').map(Number);
-                  const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
-                  setProgress(prev => ({
-                    ...prev!,
-                    audiobook_position: totalSeconds
-                  }));
-                }}
-              />
-            </div>
-          )}
+
 
           <div className={styles.inputGroup}>
             <label>Progress notes:</label>
@@ -184,7 +166,7 @@ export default function ReadingProgressTracker({
             onClick={() => setIsEditing(true)}
             className={styles.editButton}
           >
-            Update Progress
+            Update Pages & Notes
           </button>
         </div>
       )}
