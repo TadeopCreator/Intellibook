@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { BiPlay, BiPause } from 'react-icons/bi';
 import { IoIosArrowDown } from 'react-icons/io';
 import { FaArrowRotateLeft, FaArrowRotateRight } from "react-icons/fa6";
+import { MdSubtitles } from "react-icons/md";
 import styles from './AudioPlayer.module.css';
 import Modal from './Modal';
 import { api } from '../services/api';
@@ -42,8 +43,95 @@ export default function AudioPlayer({
   const [dragOffset, setDragOffset] = useState(0);
   const [startY, setStartY] = useState(0);
   const [isPositionSet, setIsPositionSet] = useState(false);
+  const [showTranscription, setShowTranscription] = useState(false);
+  const [transcriptionData, setTranscriptionData] = useState<string>('');
+  const [transcriptionLines, setTranscriptionLines] = useState<Array<{start: number, end: number, text: string}>>([]);
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [previousLineIndex, setPreviousLineIndex] = useState(-1);
+  const [isLineChanging, setIsLineChanging] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const transcriptionContainerRef = useRef<HTMLDivElement>(null);
   const { refreshAuth, signOut } = useAuth();
+
+  // Function to fetch transcription data
+  const fetchTranscription = async () => {
+    try {
+      const response = await api.books.getTranscription(parseInt(bookId));
+      const data = await response.json();
+      const transcriptionText = data.transcription;
+      setTranscriptionData(transcriptionText);
+      parseTranscription(transcriptionText);
+    } catch (error) {
+      console.error('Error fetching transcription:', error);
+      setTranscriptionData('');
+      setTranscriptionLines([]);
+    }
+  };
+
+  // Function to parse transcription text into time-stamped lines
+  const parseTranscription = (text: string) => {
+    const lines: Array<{start: number, end: number, text: string}> = [];
+    
+    // Split by lines and process each line
+    const textLines = text.split('\n');
+    
+    for (const line of textLines) {
+      // Match pattern: [start_time -> end_time] text
+      const match = line.match(/^\[(\d+\.?\d*)s\s*->\s*(\d+\.?\d*)s\]\s*(.+)$/);
+      
+      if (match) {
+        const start = parseFloat(match[1]);
+        const end = parseFloat(match[2]);
+        const text = match[3].trim();
+        
+        lines.push({ start, end, text });
+      }
+    }
+    
+    setTranscriptionLines(lines);
+  };
+
+  // Optimized function to find current line based on audio time
+  // Since lines are chronologically ordered and approximately every 5 seconds
+  const findCurrentLine = (currentTime: number) => {
+    if (transcriptionLines.length === 0) return -1;
+    
+    // Estimate starting position based on ~5 seconds per line
+    const estimatedIndex = Math.floor(currentTime / 5);
+    const startSearchIndex = Math.max(0, Math.min(estimatedIndex - 2, transcriptionLines.length - 1));
+    
+    // Search forward from estimated position
+    for (let i = startSearchIndex; i < transcriptionLines.length; i++) {
+      const line = transcriptionLines[i];
+      if (currentTime >= line.start && currentTime <= line.end) {
+        return i;
+      }
+      // If we've passed the current time, no line is active
+      if (currentTime < line.start) {
+        break;
+      }
+    }
+    
+    // If not found in forward search, check a few lines backward
+    for (let i = startSearchIndex - 1; i >= Math.max(0, startSearchIndex - 5); i--) {
+      const line = transcriptionLines[i];
+      if (currentTime >= line.start && currentTime <= line.end) {
+        return i;
+      }
+    }
+    
+    return -1;
+  };
+
+  // Function to toggle transcription mode
+  const toggleTranscription = async () => {
+    if (!showTranscription && transcriptionData === '') {
+      // First time opening transcription, fetch data
+      await fetchTranscription();
+    }
+    setShowTranscription(!showTranscription);
+  };
 
   useEffect(() => {
     if (!isVisible) {
@@ -342,6 +430,35 @@ export default function AudioPlayer({
     }
   }, [isPlaying]);
 
+  // Debounced update for better performance
+  const updateLineIndexRef = useRef<number | null>(null);
+  
+  // Update current line index based on current time with smooth continuous scrolling
+  useEffect(() => {
+    if (showTranscription && transcriptionLines.length > 0) {
+      // Clear previous timeout to debounce rapid updates
+      if (updateLineIndexRef.current) {
+        clearTimeout(updateLineIndexRef.current);
+      }
+      
+      updateLineIndexRef.current = window.setTimeout(() => {
+        const lineIndex = findCurrentLine(currentTime);
+        if (lineIndex !== -1 && lineIndex !== currentLineIndex) {
+          // Update the index - the CSS transitions will create the smooth scroll effect
+          setPreviousLineIndex(currentLineIndex);
+          setCurrentLineIndex(lineIndex);
+        }
+      }, 100); // Debounce by 100ms
+    }
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (updateLineIndexRef.current) {
+        clearTimeout(updateLineIndexRef.current);
+      }
+    };
+  }, [currentTime, showTranscription, transcriptionLines, currentLineIndex]);
+
   const handleMinimize = (e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -353,10 +470,14 @@ export default function AudioPlayer({
     setIsMinimizing(true);
     
     // Esperar a que termine la animación antes de cambiar el estado
+    // Mobile-optimized timing to match CSS animations
+    const isMobile = window.innerWidth <= 768;
+    const animationDuration = isMobile ? 250 : 300;
+    
     setTimeout(() => {
       setIsExpanded(false);
       setIsMinimizing(false);
-    }, 300); // Duración de la animación
+    }, animationDuration);
   };
 
   useEffect(() => {
@@ -528,7 +649,7 @@ export default function AudioPlayer({
         ) : (
           // Vista expandida
           <div 
-            className={`${styles.expandedPlayer} ${isMinimizing ? styles.minimizing : ''}`} 
+            className={`${styles.expandedPlayer} ${isMinimizing ? styles.minimizing : ''} ${showTranscription ? styles.transcriptionMode : ''}`} 
             onClick={(e) => e.stopPropagation()}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -543,19 +664,92 @@ export default function AudioPlayer({
             <div className={styles.swipeIndicator}></div>
             
             <div className={styles.expandedCoverContainer}>
-              {coverUrl && (
+              {showTranscription && transcriptionLines.length > 0 ? (
+                <div 
+                  ref={transcriptionContainerRef}
+                  className={styles.transcriptionContainer}
+                >
+                  <div 
+                    className={styles.transcriptionScroller}
+                    style={{
+                      transform: `translateY(${currentLineIndex * 0}px)` // Force re-render trigger
+                    }}
+                  >
+                    {/* Show multiple lines for context and smooth scrolling */}
+                    {transcriptionLines.length > 0 && (
+                      <>
+                        {/* Two lines before current */}
+                        {currentLineIndex > 1 && (
+                          <div 
+                            className={`${styles.transcriptionLine} ${styles.farPreviousLine}`}
+                            key={`far-prev-${currentLineIndex - 2}`}
+                          >
+                            {transcriptionLines[currentLineIndex - 2].text}
+                          </div>
+                        )}
+                        
+                        {/* Previous line */}
+                        {currentLineIndex > 0 && (
+                          <div 
+                            className={`${styles.transcriptionLine} ${styles.previousLine}`}
+                            key={`prev-${currentLineIndex - 1}`}
+                          >
+                            {transcriptionLines[currentLineIndex - 1].text}
+                          </div>
+                        )}
+                        
+                        {/* Current line */}
+                        {currentLineIndex >= 0 && currentLineIndex < transcriptionLines.length && (
+                          <div 
+                            className={`${styles.transcriptionLine} ${styles.currentLine}`}
+                            key={`current-${currentLineIndex}`}
+                          >
+                            {transcriptionLines[currentLineIndex].text}
+                          </div>
+                        )}
+                        
+                        {/* Next line */}
+                        {currentLineIndex < transcriptionLines.length - 1 && (
+                          <div 
+                            className={`${styles.transcriptionLine} ${styles.nextLine}`}
+                            key={`next-${currentLineIndex + 1}`}
+                          >
+                            {transcriptionLines[currentLineIndex + 1].text}
+                          </div>
+                        )}
+                        
+                        {/* Two lines after current */}
+                        {currentLineIndex < transcriptionLines.length - 2 && (
+                          <div 
+                            className={`${styles.transcriptionLine} ${styles.farNextLine}`}
+                            key={`far-next-${currentLineIndex + 2}`}
+                          >
+                            {transcriptionLines[currentLineIndex + 2].text}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : !showTranscription && coverUrl ? (
                 <img 
                   src={coverUrl} 
                   alt={bookTitle} 
                   className={styles.expandedCover}
                 />
-              )}
+              ) : showTranscription ? (
+                <div className={styles.noTranscriptionMessage}>
+                  No transcription available for this book
+                </div>
+              ) : null}
             </div>
             
-            <div className={styles.expandedDetails}>
-              <h3 className={styles.expandedTitle}>{bookTitle}</h3>
-              <p className={styles.expandedAuthor}>{author}</p>
-            </div>
+            {!showTranscription && (
+              <div className={styles.expandedDetails}>
+                <h3 className={styles.expandedTitle}>{bookTitle}</h3>
+                <p className={styles.expandedAuthor}>{author}</p>
+              </div>
+            )}
             
             <div className={styles.expandedControls}>
               <button 
@@ -591,6 +785,13 @@ export default function AudioPlayer({
                 title={`Playback speed: ${playbackSpeed}x`}
               >
                 {playbackSpeed}x
+              </button>
+              <button 
+                className={`${styles.transcriptionButton} ${showTranscription ? styles.active : ''}`}
+                onClick={toggleTranscription}
+                title="Toggle transcription"
+              >
+                <MdSubtitles size={20} />
               </button>
             </div>
             
