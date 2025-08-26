@@ -889,7 +889,7 @@ export default function BookList() {
               <input
                 type="text"
                 placeholder="Transcription file (TXT)"
-                value={transcriptionFile?.name || newBook.transcription_path || ''}
+                value={transcriptionFile?.name || newBook?.transcription_path || ''}
                 readOnly
                 className={styles.filePathInput}
               />
