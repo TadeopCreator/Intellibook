@@ -29,6 +29,10 @@ export interface Book {
   audiobook_url?: string;
   audiobook_path?: string;  // Ruta local del audiolibro
   audiobook_format?: AudiobookFormat;
+  
+  transcription_url?: string;
+  transcription_path?: string;  // Ruta local de la transcripción
+  
   progress?: {
     last_read_date: string | null;
     progress_percentage: number;
