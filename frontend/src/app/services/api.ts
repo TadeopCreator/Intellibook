@@ -92,6 +92,7 @@ export const api = {
       method: 'DELETE',
     }),
     getContent: (id: number) => apiRequest(`/api/books/${id}/content`),
+    getTranscription: (id: number) => apiRequest(`/api/books/${id}/transcription`),
     getSignedUrl: (id: number) => apiRequest(`/api/signed-url/${id}`),
   },
   

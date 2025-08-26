@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import uuid
+import re
 from google.cloud.sql.connector import Connector, IPTypes
 import pymysql
 import sqlalchemy
@@ -98,16 +99,19 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 EBOOKS_DIR = os.path.join(STATIC_DIR, "ebooks")
 AUDIOBOOKS_DIR = os.path.join(STATIC_DIR, "audiobooks")
+TRANSCRIPTIONS_DIR = os.path.join(STATIC_DIR, "transcriptions")
 
 # Crear los directorios si no existen
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(EBOOKS_DIR, exist_ok=True)
 os.makedirs(AUDIOBOOKS_DIR, exist_ok=True)
+os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
 
 # Montar los directorios estáticos
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/static/ebooks", StaticFiles(directory=EBOOKS_DIR), name="ebooks")
 app.mount("/static/audiobooks", StaticFiles(directory=AUDIOBOOKS_DIR), name="audiobooks")
+app.mount("/static/transcriptions", StaticFiles(directory=TRANSCRIPTIONS_DIR), name="transcriptions")
 
 # Configurar Gemini
 client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
@@ -175,8 +179,44 @@ engine = get_database_engine()
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
+# Function to check and update database schema
+def check_and_update_schema():
+    """Check if database schema needs updating and handle it accordingly"""
+    try:
+        with Session(engine) as session:
+            # Try to query for the new transcription columns
+            result = session.exec(
+                select(Book.transcription_url, Book.transcription_path).limit(1)
+            ).first()
+            logger.info("Database schema is up to date")
+    except Exception as e:
+        if "transcription_url" in str(e) or "transcription_path" in str(e):
+            logger.warning("Database schema needs updating - new transcription columns missing")
+            
+            if DEBUG_MODE:
+                # In debug mode, we can safely drop and recreate tables
+                logger.info("DEBUG MODE: Recreating database tables with new schema")
+                try:
+                    SQLModel.metadata.drop_all(engine)
+                    SQLModel.metadata.create_all(engine)
+                    logger.info("Database tables recreated successfully")
+                except Exception as recreate_error:
+                    logger.error(f"Error recreating tables: {recreate_error}")
+                    raise recreate_error
+            else:
+                # In production mode, log the issue and continue
+                logger.error("PRODUCTION MODE: Database schema update required but not automatically applied")
+                logger.error("Please run database migrations manually")
+                # Don't raise the error in production to allow the app to start
+        else:
+            # Some other database error, re-raise it
+            raise e
+
 # Create tables on startup
 create_db_and_tables()
+
+# Check and update schema if needed
+check_and_update_schema()
 
 # Define system instructions for different functions
 DORIAN_BASE_INSTRUCTION = """You are Dorian, an AI assistant specialized exclusively in books and literature. You must:
@@ -469,6 +509,74 @@ async def transcribe_audio(audio: UploadFile = File(...)):
     except Exception as e:
         return {"error": str(e)}
 
+# Function to generate unique transcription filename based on book information
+def generate_transcription_filename(book_title: str, book_author: str, book_id: int = None) -> str:
+    """
+    Generate a unique filename for transcription based on book information
+    Format: {sanitized_title}_{sanitized_author}_{book_id}_transcription.txt
+    """
+    def sanitize_filename(text: str) -> str:
+        """Remove invalid characters and limit length"""
+        # Remove invalid characters for filenames
+        sanitized = re.sub(r'[<>:"/\\|?*]', '', text)
+        # Replace spaces with underscores
+        sanitized = re.sub(r'\s+', '_', sanitized)
+        # Remove consecutive underscores
+        sanitized = re.sub(r'_+', '_', sanitized)
+        # Limit length to 50 characters
+        return sanitized[:50].strip('_')
+    
+    sanitized_title = sanitize_filename(book_title)
+    sanitized_author = sanitize_filename(book_author)
+    
+    if book_id:
+        filename = f"{sanitized_title}_{sanitized_author}_{book_id}_transcription.txt"
+    else:
+        # Use timestamp if no book_id available yet
+        timestamp = str(int(time.time()))
+        filename = f"{sanitized_title}_{sanitized_author}_{timestamp}_transcription.txt"
+    
+    return filename
+
+# Function to rename transcription file in cloud storage
+def rename_transcription_file_in_cloud(old_url: str, new_filename: str) -> str:
+    """
+    Rename a transcription file in Google Cloud Storage
+    Returns the new URL
+    """
+    try:
+        if "storage.cloud.google.com" not in old_url:
+            return old_url  # Not a cloud storage URL
+        
+        # Parse the old URL
+        parts = old_url.replace("https://storage.cloud.google.com/", "").split("/", 1)
+        bucket_name = parts[0]
+        old_blob_path = parts[1] if len(parts) > 1 else ""
+        
+        # Create new blob path
+        new_blob_path = f"transcriptions/{new_filename}"
+        
+        # Initialize storage client
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        
+        # Copy the blob to new location
+        old_blob = bucket.blob(old_blob_path)
+        new_blob = bucket.copy_blob(old_blob, bucket, new_blob_path)
+        
+        # Delete the old blob
+        old_blob.delete()
+        
+        # Return new URL
+        new_url = f"https://storage.cloud.google.com/{bucket_name}/{new_blob_path}"
+        logger.info(f"Renamed transcription file from {old_url} to {new_url}")
+        return new_url
+        
+    except Exception as e:
+        logger.error(f"Error renaming transcription file: {str(e)}")
+        # Return old URL if renaming fails
+        return old_url
+
 # Upload a book to Cloud Storage from local file path
 def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
     """
@@ -476,7 +584,7 @@ def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
     
     Args:
         source_file_name: Local path to the file
-        book_type: Either 'ebook' or 'audiobook'
+        book_type: Either 'ebook', 'audiobook', or 'transcription'
         filename: Optional custom filename to use in the cloud
     
     Returns:
@@ -495,7 +603,15 @@ def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
         logger.info(f"Truncated long filename to: {filename}")
     
     bucket_name = "intellibook_static"
-    folder = "ebooks" if book_type == 'ebook' else "audiobooks"
+    if book_type == 'ebook':
+        folder = "ebooks"
+    elif book_type == 'audiobook':
+        folder = "audiobooks"
+    elif book_type == 'transcription':
+        folder = "transcriptions"
+    else:
+        raise ValueError(f"Invalid book_type: {book_type}")
+    
     destination_blob_name = f"{folder}/{filename}"
     
     try:
@@ -539,22 +655,30 @@ def upload_book_to_cloud_storage(source_file_name, book_type, filename=None):
         logger.error(traceback.format_exc())
         raise e
 
-def copy_file_to_storage(source_path: str, book_type: str) -> str:
+def copy_file_to_storage(source_path: str, book_type: str, custom_filename: str = None) -> str:
     """
     Copy a file to the appropriate storage location and return the new path.
     In DEBUG_MODE, files are stored locally.
     In production, files are uploaded to Google Cloud Storage.
     """
     if DEBUG_MODE:
-        if book_type == 'ebook':
-            relative_web_path = f"ebooks/{os.path.basename(source_path)}"
-            base_dir = EBOOKS_DIR            
-        else:  # audiobook
-            relative_web_path = f"audiobooks/{os.path.basename(source_path)}"
-            base_dir = AUDIOBOOKS_DIR            
+        # Get filename (use custom filename if provided, especially for transcriptions)
+        if custom_filename:
+            filename = custom_filename
+        else:
+            filename = os.path.basename(source_path)
 
-        # Get filename
-        filename = os.path.basename(source_path)
+        if book_type == 'ebook':
+            relative_web_path = f"ebooks/{filename}"
+            base_dir = EBOOKS_DIR            
+        elif book_type == 'audiobook':
+            relative_web_path = f"audiobooks/{filename}"
+            base_dir = AUDIOBOOKS_DIR
+        elif book_type == 'transcription':
+            relative_web_path = f"transcriptions/{filename}"
+            base_dir = TRANSCRIPTIONS_DIR
+        else:
+            raise ValueError(f"Invalid book_type: {book_type}")            
 
         # Create target path (absolute for file operations)
         absolute_target_path = os.path.join(base_dir, filename)
@@ -571,7 +695,9 @@ def copy_file_to_storage(source_path: str, book_type: str) -> str:
     else:
         # Production mode - use Google Cloud Storage
         try:
-            cloud_url = upload_book_to_cloud_storage(source_path, book_type)
+            # Use custom filename if provided
+            upload_filename = custom_filename if custom_filename else None
+            cloud_url = upload_book_to_cloud_storage(source_path, book_type, upload_filename)
             logger.info(f"PRODUCTION MODE: File uploaded to cloud: {cloud_url}")
             return cloud_url
         except Exception as e:
@@ -586,7 +712,8 @@ async def create_book(
     request: Request,
     current_user: dict = Depends(get_current_user),
     ebook_file: UploadFile = File(None),
-    audiobook_file: UploadFile = File(None)
+    audiobook_file: UploadFile = File(None),
+    transcription_file: UploadFile = File(None)
 ):
     try:
         # Parse form data to get book info
@@ -595,7 +722,7 @@ async def create_book(
         # Extract book data from form
         book_data = {}
         for key, value in form.items():
-            if key not in ['ebook_file', 'audiobook_file']:
+            if key not in ['ebook_file', 'audiobook_file', 'transcription_file']:
                 book_data[key] = value
         
         # Create Book model
@@ -687,15 +814,86 @@ async def create_book(
             book.audiobook_path = None
             book.audiobook_format = form.get('audiobook_format')
         
+        # Handle transcription file if provided
+        if transcription_file:
+            # Check file size - reject if too large for API upload
+            if hasattr(transcription_file, 'size') and transcription_file.size > 30 * 1024 * 1024:  # 30MB limit
+                raise HTTPException(
+                    status_code=413,
+                    detail="Transcription file too large for API upload. Use direct upload for files larger than 30MB."
+                )
+            
+            # Save to temporary location first
+            temp_dir = os.path.join(BASE_DIR, "temp_files")
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_path = os.path.join(temp_dir, transcription_file.filename)
+            
+            with open(temp_path, "wb") as buffer:
+                content = await transcription_file.read()
+                buffer.write(content)
+            
+            # Generate custom filename based on book information
+            custom_filename = generate_transcription_filename(
+                book_data.get('title', 'unknown'),
+                book_data.get('author', 'unknown')
+            )
+            
+            # Use copy_file_to_storage to save to appropriate location with custom filename
+            result_path = copy_file_to_storage(temp_path, 'transcription', custom_filename)
+            
+            # Set appropriate fields based on DEBUG_MODE
+            if DEBUG_MODE:
+                book.transcription_path = result_path
+                book.transcription_url = None
+            else:
+                book.transcription_url = result_path
+                book.transcription_path = None
+            
+            # Clean up temp file
+            os.remove(temp_path)
+        
+        # Handle direct transcription upload URL (for large files)
+        elif form.get('transcription_direct_url'):
+            logger.debug(f"Direct transcription upload - URL: {form.get('transcription_direct_url')}")
+            # For direct uploads, we'll rename the file after saving the book
+            book.transcription_url = form.get('transcription_direct_url')
+            book.transcription_path = None
+        
         # Save book to database
         with Session(engine) as session:
             session.add(book)
             session.commit()
             session.refresh(book)
             
+            # After saving, if there's a transcription from direct upload, rename it with book ID
+            if book.transcription_url and 'temp_' in book.transcription_url:
+                try:
+                    # Generate final filename with book ID
+                    final_filename = generate_transcription_filename(
+                        book.title,
+                        book.author,
+                        book.id
+                    )
+                    
+                    # Rename the file in cloud storage
+                    new_url = rename_transcription_file_in_cloud(book.transcription_url, final_filename)
+                    
+                    # Update the book record with new URL
+                    book.transcription_url = new_url
+                    session.add(book)
+                    session.commit()
+                    session.refresh(book)
+                    
+                    logger.info(f"Renamed transcription file for book {book.id}: {final_filename}")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to rename transcription file for book {book.id}: {str(e)}")
+                    # Don't fail the entire operation if renaming fails
+            
             logger.debug(f"Book created: ID={book.id}, DEBUG={DEBUG_MODE}, " +
                          f"ebook_path={book.ebook_path}, ebook_url={book.ebook_url}, " +
-                         f"audiobook_path={book.audiobook_path}, audiobook_url={book.audiobook_url}")
+                         f"audiobook_path={book.audiobook_path}, audiobook_url={book.audiobook_url}, " +
+                         f"transcription_path={book.transcription_path}, transcription_url={book.transcription_url}")
             
             return book
             
@@ -712,7 +910,8 @@ async def update_book(
     request: Request,
     current_user: dict = Depends(get_current_user),
     ebook_file: UploadFile = File(None),
-    audiobook_file: UploadFile = File(None)
+    audiobook_file: UploadFile = File(None),
+    transcription_file: UploadFile = File(None)
 ):
     try:
         # Parse form data
@@ -721,7 +920,7 @@ async def update_book(
         # Extract book data from form
         book_data = {}
         for key, value in form.items():
-            if key not in ['ebook_file', 'audiobook_file']:
+            if key not in ['ebook_file', 'audiobook_file', 'transcription_file']:
                 book_data[key] = value
         
         # Get existing book
@@ -809,6 +1008,69 @@ async def update_book(
                 book_data['audiobook_url'] = form.get('audiobook_direct_url')
                 book_data['audiobook_path'] = None
                 book_data['audiobook_format'] = form.get('audiobook_format')
+
+            # Handle transcription file if provided
+            if transcription_file:
+                # Check file size - reject if too large for API upload
+                if hasattr(transcription_file, 'size') and transcription_file.size > 30 * 1024 * 1024:  # 30MB limit
+                    raise HTTPException(
+                        status_code=413,
+                        detail="Transcription file too large for API upload. Use direct upload for files larger than 30MB."
+                    )
+                
+                # Save to temporary location first
+                temp_dir = os.path.join(BASE_DIR, "temp_files")
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, transcription_file.filename)
+                
+                with open(temp_path, "wb") as buffer:
+                    content = await transcription_file.read()
+                    buffer.write(content)
+                
+                # Generate custom filename based on book information
+                custom_filename = generate_transcription_filename(
+                    book_data.get('title', book.title),
+                    book_data.get('author', book.author),
+                    book.id
+                )
+                
+                # Use copy_file_to_storage to save to appropriate location with custom filename
+                result_path = copy_file_to_storage(temp_path, 'transcription', custom_filename)
+                
+                # Set appropriate fields based on DEBUG_MODE
+                if DEBUG_MODE:
+                    book_data['transcription_path'] = result_path
+                    book_data['transcription_url'] = None
+                else:
+                    book_data['transcription_url'] = result_path
+                    book_data['transcription_path'] = None
+                
+                # Clean up temp file
+                os.remove(temp_path)
+            
+            # Handle direct transcription upload URL (for large files)
+            elif form.get('transcription_direct_url'):
+                logger.debug(f"Direct transcription upload (update) - URL: {form.get('transcription_direct_url')}")
+                # For direct uploads, we'll rename the file with proper filename
+                temp_url = form.get('transcription_direct_url')
+                
+                # If it's a temp file, rename it now
+                if 'temp_' in temp_url:
+                    try:
+                        final_filename = generate_transcription_filename(
+                            book_data.get('title', book.title),
+                            book_data.get('author', book.author),
+                            book.id
+                        )
+                        new_url = rename_transcription_file_in_cloud(temp_url, final_filename)
+                        book_data['transcription_url'] = new_url
+                    except Exception as e:
+                        logger.error(f"Failed to rename transcription file: {str(e)}")
+                        book_data['transcription_url'] = temp_url
+                else:
+                    book_data['transcription_url'] = temp_url
+                
+                book_data['transcription_path'] = None
             
             # Update book attributes
             for key, value in book_data.items():
@@ -1217,18 +1479,29 @@ async def generate_upload_url(
             )
         
         # Validate file type
-        if file_type not in ['ebook', 'audiobook']:
+        if file_type not in ['ebook', 'audiobook', 'transcription']:
             raise HTTPException(
                 status_code=400,
-                detail="file_type must be 'ebook' or 'audiobook'"
+                detail="file_type must be 'ebook', 'audiobook', or 'transcription'"
             )
         
         # Generate unique filename to avoid conflicts
         import uuid
-        unique_filename = f"{uuid.uuid4()}_{filename}"
+        if file_type == 'transcription':
+            # For transcriptions, we'll use a temporary UUID name since we don't have book info yet
+            # The actual renaming will happen when the book is created/updated
+            unique_filename = f"temp_{uuid.uuid4()}_{filename}"
+        else:
+            unique_filename = f"{uuid.uuid4()}_{filename}"
         
         bucket_name = "intellibook_static"
-        folder = "ebooks" if file_type == 'ebook' else "audiobooks"
+        if file_type == 'ebook':
+            folder = "ebooks"
+        elif file_type == 'audiobook':
+            folder = "audiobooks"
+        elif file_type == 'transcription':
+            folder = "transcriptions"
+        
         blob_name = f"{folder}/{unique_filename}"
         
         # Create storage client
@@ -1315,6 +1588,104 @@ async def auth_status(current_user: dict = Depends(get_current_user)):
             "name": current_user.get("name")
         }
     }
+
+@app.get("/api/books/{book_id}/transcription")
+async def get_book_transcription(book_id: int, current_user: dict = Depends(get_current_user)):
+    """Get transcription content for a book"""
+    logger.debug(f"Attempting to get transcription for book ID: {book_id}")
+    
+    with Session(engine) as session:
+        book = session.get(Book, book_id)
+        logger.debug(f"Book found: {book}")
+        
+        if not book:
+            logger.warning("Book not found in database")
+            raise HTTPException(status_code=404, detail="Book not found")
+        
+        # Check if book has transcription
+        if not book.transcription_path and not book.transcription_url:
+            logger.warning("Book has no transcription")
+            raise HTTPException(status_code=404, detail="No transcription available for this book")
+        
+        temp_file = None
+        try:
+            if DEBUG_MODE:
+                # Local file mode - use transcription_path
+                if not book.transcription_path:
+                    logger.warning("Book has no associated transcription file path")
+                    raise HTTPException(status_code=404, detail="Book has no associated transcription file")
+                
+                # Use the path directly
+                file_path = os.path.join(TRANSCRIPTIONS_DIR, os.path.basename(book.transcription_path))
+                
+            else:
+                # Cloud storage mode - use transcription_url
+                if not book.transcription_url:
+                    logger.warning("Book has no associated transcription URL")
+                    raise HTTPException(status_code=404, detail="Book has no associated transcription URL")
+                
+                logger.debug(f"Transcription URL: {book.transcription_url}")
+                
+                # Create temp directory if it doesn't exist
+                temp_dir = os.path.join(BASE_DIR, "temp_files")
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                # Set up the temp file path
+                temp_file = os.path.join(temp_dir, f"temp_transcription_{book_id}_{int(time.time())}.txt")
+                
+                logger.debug(f"Downloading transcription from URL: {book.transcription_url}")
+                
+                # Download transcription from cloud storage
+                try:
+                    logger.debug("Attempting download with GCS client")
+                    from google.cloud import storage
+                    
+                    # Parse URL to get bucket and blob path
+                    parts = book.transcription_url.replace("https://storage.cloud.google.com/", "").split("/", 1)
+                    bucket_name = parts[0]
+                    blob_path = parts[1] if len(parts) > 1 else ""
+                    
+                    # Initialize the storage client
+                    storage_client = storage.Client()
+                    bucket = storage_client.bucket(bucket_name)
+                    blob = bucket.blob(blob_path)
+                    
+                    # Download the file
+                    blob.download_to_filename(temp_file)
+                    file_path = temp_file
+                    logger.debug(f"Successfully downloaded transcription with GCS client")
+                    
+                except Exception as gcs_error:
+                    logger.error(f"GCS client download failed: {str(gcs_error)}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to download transcription file: {str(gcs_error)}"
+                    )
+            
+            # Read transcription content
+            logger.debug("Reading transcription content")
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            
+            logger.debug(f"Transcription content extracted successfully, length: {len(content)}")
+            return {"transcription": content}
+            
+        except Exception as e:
+            logger.error(f"Error reading transcription: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Error reading transcription: {str(e)}"
+            )
+        finally:
+            # Clean up temp file if it was created
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
 
 if __name__ == "__main__":
     import uvicorn

@@ -57,4 +57,7 @@ class Book(SQLModel, table=True):
     
     audiobook_url: Optional[str] = None  # For online URLs
     audiobook_path: Optional[str] = None  # For local files
-    audiobook_format: Optional[str] = None  # mp3, m4b, etc. 
+    audiobook_format: Optional[str] = None  # mp3, m4b, etc.
+    
+    transcription_url: Optional[str] = None  # For cloud storage URLs
+    transcription_path: Optional[str] = None  # For local files 

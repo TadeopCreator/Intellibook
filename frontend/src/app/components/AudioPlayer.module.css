@@ -300,6 +300,49 @@
   touch-action: pan-y; /* Permitir solo scroll vertical */
 }
 
+/* Mobile optimization: Faster main animation */
+@media (max-width: 768px) {
+  .expandedPlayer {
+    animation: expandAnimation 0.25s ease-out forwards;
+    padding: 1rem; /* Less padding on mobile */
+  }
+  
+  /* Mobile adjustments */
+  .transcriptionContainer {
+    min-height: 450px;
+    padding: 2.5rem 0.5rem;
+    margin: 0.5rem;
+  }
+  
+  .transcriptionScroller {
+    height: 380px;
+  }
+  
+  .farPreviousLine {
+    transform: translateY(-180px) translateX(-50%) scale(0.8);
+    font-size: 1rem;
+  }
+  
+  .previousLine {
+    transform: translateY(-100px) translateX(-50%) scale(0.85);
+    font-size: 1.15rem;
+  }
+  
+  .nextLine {
+    transform: translateY(100px) translateX(-50%) scale(0.85);
+    font-size: 1.15rem;
+  }
+  
+  .farNextLine {
+    transform: translateY(180px) translateX(-50%) scale(0.8);
+    font-size: 1rem;
+  }
+  
+  .currentLine {
+    font-size: 1.2rem;
+  }
+}
+
 /* Indicador de swipe en la parte superior */
 .swipeIndicator {
   position: absolute;
@@ -328,6 +371,13 @@
 /* Animación para minimizar (se aplicará al cerrar) */
 .minimizing {
   animation: minimizeAnimation 0.3s ease-in-out forwards;
+}
+
+/* Mobile optimization: Faster minimize animation */
+@media (max-width: 768px) {
+  .minimizing {
+    animation: minimizeAnimation 0.25s ease-out forwards;
+  }
 }
 
 @keyframes minimizeAnimation {
@@ -368,6 +418,34 @@
   animation-delay: 0.5s;
 }
 
+/* Mobile optimization: Reduce animation delays to prevent double animation effect */
+@media (max-width: 768px) {
+  .expandedCoverContainer, 
+  .expandedDetails, 
+  .expandedControls, 
+  .expandedProgressBar, 
+  .expandedStopButton {
+    animation-delay: 0.05s; /* Much shorter delay for mobile */
+    animation-duration: 0.25s; /* Faster animation for mobile */
+  }
+
+  .expandedDetails {
+    animation-delay: 0.08s;
+  }
+
+  .expandedControls {
+    animation-delay: 0.1s;
+  }
+
+  .expandedProgressBar {
+    animation-delay: 0.12s;
+  }
+
+  .expandedStopButton {
+    animation-delay: 0.15s;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -385,6 +463,46 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced container for transcription mode */
+.transcriptionMode .expandedCoverContainer {
+  width: 100%;
+  height: auto;
+  min-height: 350px;
+  max-height: 450px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* Transcription mode layout adjustments */
+.transcriptionMode {
+  gap: 1rem;
+}
+
+/* Keep natural order - transcription first, then controls */
+.transcriptionMode .expandedControls {
+  order: 1; /* Controls after transcription */
+  margin-top: 1rem;
+}
+
+.transcriptionMode .speedControl {
+  order: 2; /* Speed control after main controls */
+  margin: 0.5rem 0;
+}
+
+.transcriptionMode .expandedProgressBar {
+  order: 3; /* Progress bar after speed controls */
+  margin-top: 0.5rem;
+}
+
+.transcriptionMode .expandedStopButton {
+  order: 4; /* Stop button at the bottom */
+  margin-top: 0.5rem;
 }
 
 .expandedCover {
@@ -655,6 +773,32 @@
     height: 180px;
   }
   
+  /* Mobile transcription mode adjustments */
+  .transcriptionMode .expandedCoverContainer {
+    width: 100%;
+    min-height: 250px;
+    max-height: 300px;
+  }
+  
+  .transcriptionMode .transcriptionContainer {
+    margin: 0.5rem;
+    padding: 1rem 0.75rem;
+  }
+  
+  .transcriptionMode .transcriptionLine {
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .transcriptionMode .currentLine {
+    font-size: 1.3rem;
+  }
+  
+  .transcriptionMode .previousLine,
+  .transcriptionMode .nextLine {
+    font-size: 1rem;
+  }
+  
   .expandedTitle {
     font-size: 1.3rem;
   }
@@ -704,6 +848,7 @@
   margin: 1rem 0;
   display: flex;
   justify-content: center;
+  gap: 1rem;
 }
 
 .speedButton {
@@ -733,5 +878,271 @@
 
   .speedButton:hover {
     background: rgba(255, 140, 0, 0.2);
+  }
+}
+
+/* Transcription Button */
+.transcriptionButton {
+  background: rgba(130, 130, 130, 0.1);
+  border: 1px solid #828282;
+  color: #828282;
+  padding: 0.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.transcriptionButton:hover {
+  background: rgba(130, 130, 130, 0.2);
+  transform: translateY(-1px);
+}
+
+.transcriptionButton.active {
+  background: rgba(255, 140, 0, 0.2);
+  border-color: #ff8c00;
+  color: #ff8c00;
+}
+
+.transcriptionButton.active:hover {
+  background: rgba(255, 140, 0, 0.3);
+}
+
+/* Transcription Container */
+.transcriptionContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  min-height: 550px;
+  max-width: 900px;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: rgba(18, 18, 18, 0.95);
+  border-radius: 12px;
+  margin: 1rem auto;
+  position: relative;
+  overflow: hidden;
+  perspective: 1000px;
+  box-sizing: border-box;
+}
+
+/* Base transcription line styles - extended by specific line classes */
+.transcriptionLine {
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Continuous scroll system */
+.transcriptionScroller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  height: 450px;
+}
+
+/* Continuous scrolling line positions - Base styles for all lines */
+.transcriptionLine {
+  position: absolute;
+  left: 50%;
+  text-align: center;
+  white-space: normal;
+  word-wrap: break-word;
+  transition: all 1s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Far lines (most distant) */
+.farPreviousLine,
+.farNextLine {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 1.05rem;
+  opacity: 0.55;
+  width: 75%;
+  max-width: 600px;
+  filter: blur(0.5px);
+  line-height: 1.3;
+}
+
+.farPreviousLine {
+  transform: translateY(-250px) translateX(-50%) scale(0.85);
+  mask: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);
+  -webkit-mask: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);
+}
+
+.farNextLine {
+  transform: translateY(250px) translateX(-50%) scale(0.85);
+  mask: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
+  -webkit-mask: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
+}
+
+/* Adjacent lines */
+.previousLine,
+.nextLine {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.25rem;
+  opacity: 0.85;
+  width: 80%;
+  max-width: 650px;
+  filter: none;
+  line-height: 1.4;
+}
+
+.previousLine {
+  transform: translateY(-130px) translateX(-50%) scale(0.9);
+  mask: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,1) 80%, rgba(0,0,0,0.4) 100%);
+  -webkit-mask: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,1) 80%, rgba(0,0,0,0.4) 100%);
+}
+
+.nextLine {
+  transform: translateY(130px) translateX(-50%) scale(0.9);
+  mask: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0.4) 100%);
+  -webkit-mask: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0.4) 100%);
+}
+
+/* Current line (center, fully visible) */
+.currentLine {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  width: 85%;
+  max-width: 750px;
+  transform: translateY(0) translateX(-50%) scale(1);
+  z-index: 2;
+  line-height: 1.6;
+  filter: none;
+}
+
+.noTranscriptionMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Dark mode transcription styles */
+@media (prefers-color-scheme: dark) {
+  .transcriptionButton {
+    background: rgba(130, 130, 130, 0.1);
+    border-color: #828282;
+    color: #828282;
+  }
+
+  .transcriptionButton:hover {
+    background: rgba(130, 130, 130, 0.2);
+  }
+
+  .transcriptionButton.active {
+    background: rgba(255, 140, 0, 0.2);
+    border-color: #ff8c00;
+    color: #ff8c00;
+  }
+
+  .transcriptionButton.active:hover {
+    background: rgba(255, 140, 0, 0.3);
+  }
+
+  .previousLine,
+  .nextLine {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .currentLine {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  
+  .previousLine,
+  .nextLine {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  
+  .transcriptionContainer {
+    background: rgba(18, 18, 18, 0.95); /* Match expandedPlayer background */
+  }
+  
+  /* Optimized beautiful animations for mobile */
+  .transcriptionContainer.scrolling {
+    animation: containerScrollTransition 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .transcriptionLine.entering {
+    animation: lineScrollIn 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+
+  .transcriptionLine.exiting {
+    animation: lineScrollOut 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+
+  .transcriptionLine.highlighting {
+    animation: currentLineScrollHighlight 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+
+  .noTranscriptionMessage {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* Mobile portrait specific adjustments */
+@media (max-width: 768px) and (orientation: portrait) {
+  .transcriptionContainer {
+    min-height: 480px;
+    padding: 3rem 0.75rem;
+  }
+  
+  .transcriptionScroller {
+    height: 400px;
+  }
+  
+  .transcriptionLine {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .farPreviousLine {
+    transform: translateY(-190px) translateX(-50%) scale(0.75);
+    width: 70%;
+    opacity: 0.5;
+    font-size: 0.95rem;
+  }
+  
+  .previousLine {
+    transform: translateY(-105px) translateX(-50%) scale(0.8);
+    width: 75%;
+    opacity: 0.8;
+    font-size: 1.1rem;
+  }
+  
+  .currentLine {
+    width: 85%;
+    font-size: 1.15rem;
+  }
+  
+  .nextLine {
+    transform: translateY(105px) translateX(-50%) scale(0.8);
+    width: 75%;
+    opacity: 0.8;
+    font-size: 1.1rem;
+  }
+  
+  .farNextLine {
+    transform: translateY(190px) translateX(-50%) scale(0.75);
+    width: 70%;
+    opacity: 0.5;
+    font-size: 0.95rem;
   }
 } 

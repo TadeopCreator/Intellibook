@@ -33,12 +33,14 @@ export default function BookList() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const ebookInputRef = useRef<HTMLInputElement>(null);
   const audiobookInputRef = useRef<HTMLInputElement>(null);
+  const transcriptionInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<number | null>(null);
   const [ebookFile, setEbookFile] = useState<File | null>(null);
   const [audiobookFile, setAudiobookFile] = useState<File | null>(null);
+  const [transcriptionFile, setTranscriptionFile] = useState<File | null>(null);
   
   // Estados para filtros y ordenación
   const [sortBy, setSortBy] = useState<SortOption>('last_read');
@@ -56,7 +58,7 @@ export default function BookList() {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Helper function for direct upload to Cloud Storage
-  const uploadFileDirectly = async (file: File, fileType: 'ebook' | 'audiobook'): Promise<string> => {
+  const uploadFileDirectly = async (file: File, fileType: 'ebook' | 'audiobook' | 'transcription'): Promise<string> => {
     try {
       console.log(`Starting direct upload for ${fileType}: ${file.name} (${file.size} bytes)`);
       
@@ -342,6 +344,27 @@ export default function BookList() {
         formData.append('audiobook_format', validAudioFormat as string);
         formData.append('audiobook_filename', audiobookFile.name);
       }
+      
+      // Handle transcription file
+      if (transcriptionFile) {
+        const validTranscriptionFormat = transcriptionFile.name.split('.').pop()?.toLowerCase();
+        if (!['txt'].includes(validTranscriptionFormat || '')) {
+          alert('Please select a TXT file for transcription');
+          return;
+        }
+        
+        // Check file size and decide upload method
+        if (transcriptionFile.size > 30 * 1024 * 1024) { // 30MB
+          // Use direct upload for large files
+          const directUrl = await uploadFileDirectly(transcriptionFile, 'transcription');
+          formData.append('transcription_direct_url', directUrl);
+        } else {
+          // Use regular API upload for smaller files
+          formData.append('transcription_file', transcriptionFile);
+        }
+        
+        formData.append('transcription_filename', transcriptionFile.name);
+      }
 
       const response = await api.books.create(formData);
       
@@ -350,9 +373,11 @@ export default function BookList() {
         setIsAdding(false);
         setEbookFile(null);
         setAudiobookFile(null);
+        setTranscriptionFile(null);
         
         if (ebookInputRef.current) ebookInputRef.current.value = '';
         if (audiobookInputRef.current) audiobookInputRef.current.value = '';
+        if (transcriptionInputRef.current) transcriptionInputRef.current.value = '';
         
         fetchBooks(); // Refresh the book list
       } else {
@@ -434,6 +459,27 @@ export default function BookList() {
         formData.append('audiobook_filename', audiobookFile.name);
       }
       
+      // Handle transcription file
+      if (transcriptionFile) {
+        const validTranscriptionFormat = transcriptionFile.name.split('.').pop()?.toLowerCase();
+        if (!['txt'].includes(validTranscriptionFormat || '')) {
+          alert('Please select a TXT file for transcription');
+          return;
+        }
+        
+        // Check file size and decide upload method
+        if (transcriptionFile.size > 30 * 1024 * 1024) { // 30MB
+          // Use direct upload for large files
+          const directUrl = await uploadFileDirectly(transcriptionFile, 'transcription');
+          formData.append('transcription_direct_url', directUrl);
+        } else {
+          // Use regular API upload for smaller files
+          formData.append('transcription_file', transcriptionFile);
+        }
+        
+        formData.append('transcription_filename', transcriptionFile.name);
+      }
+      
       const response = await api.books.update(editingId, formData);
       
       if (response.ok) {
@@ -443,6 +489,7 @@ export default function BookList() {
         setIsAdding(false);
         setEbookFile(null);
         setAudiobookFile(null);
+        setTranscriptionFile(null);
       } else {
         const error = await response.json();
         console.error('Error updating book:', error);
@@ -831,6 +878,40 @@ export default function BookList() {
                     setNewBook({
                       ...newBook, 
                       audiobook_path: file.name
+                    });
+                  }
+                }}
+              />
+            </div>
+            
+            <div className={styles.fileInputGroup}>
+              <label>Transcription File (optional):</label>
+              <input
+                type="text"
+                placeholder="Transcription file (TXT)"
+                value={transcriptionFile?.name || newBook.transcription_path || ''}
+                readOnly
+                className={styles.filePathInput}
+              />
+              <button
+                type="button"
+                onClick={() => transcriptionInputRef.current?.click()}
+                className={styles.browseButton}
+              >
+                Browse
+              </button>
+              <input
+                ref={transcriptionInputRef}
+                type="file"
+                accept=".txt"
+                className={styles.hiddenInput}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setTranscriptionFile(file);
+                    setNewBook({
+                      ...newBook, 
+                      transcription_path: file.name
                     });
                   }
                 }}
